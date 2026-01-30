@@ -1,9 +1,110 @@
-# For projects that use the Waf build system: https://waf.io/
-# Dot-hidden on Unix-like systems
-.waf-*-*/
-.waf3-*-*/
-# Hidden directory on Windows (no dot)
-waf-*-*/
-waf3-*-*/
-# Lockfile
-.lock-waf_*_build
+# Visual Studio / .NET gitignore for a C# project targeting .NET 9
+# Based on https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.userprefs
+*.sln.docstates
+
+# Build results
+[Bb]in/
+[Oo]bj/
+out/
+artifacts/
+
+# Visual Studio temporary files, build results, and user-specific files
+.vs/
+*.ide
+
+# Rider
+.idea/
+*.sln.iml
+
+# ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+packages/
+.nuget/packages/
+.nuget/packages.lock.json
+
+# MSBuild generated files
+*.log
+*.vspscc
+*_i.c
+*_p.c
+*_h.h
+FakeClient*
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# User secrets
+secrets.json
+.env
+
+# Dotnet publish
+publish/
+
+# Test results
+TestResults/
+*.trx
+
+# Coverage
+coverage*/
+*.coverage
+*.coveragexml
+coverage*.xml
+
+# Rider coverage
+.idea/
+*.idea/
+
+# Visual Studio profiler
+*.psess
+*.vsp
+*.vspx
+
+# Others
+*.db
+*.sqlite
+*.bak
+*.backup
+*.pfx
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Ignore generated resx designer backups
+*Designer.cs.backup
+
+# Ignore packages created by dotnet pack
+*.symbols.nupkg
+
+# Lock files (optional)
+project.lock.json
+
+# Ignore legacy problematic project filename (if present)
+C# Assignment.csproj
+
+# Ignore encrypted credential files and local secrets
+# Our credential store uses AppData by default but ignore any stray files in repo
+*.creds
+db.creds
+*.secret
+
+# Ignore user-specific project files
+*.user
+*.user.*
+
+# End of file
