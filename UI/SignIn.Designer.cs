@@ -36,51 +36,58 @@ namespace RMS.UI
             button1 = new Button();
             label1 = new Label();
             label2 = new Label();
+            pictureBox1 = new PictureBox();
             panel1.SuspendLayout();
             panel2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
             // 
             // tbUsername
             // 
             tbUsername.BorderStyle = BorderStyle.None;
-            tbUsername.Location = new Point(20, 9);
+            tbUsername.Location = new Point(18, 7);
+            tbUsername.Margin = new Padding(3, 2, 3, 2);
             tbUsername.Name = "tbUsername";
             tbUsername.PlaceholderText = "Username";
-            tbUsername.Size = new Size(219, 20);
+            tbUsername.Size = new Size(192, 16);
             tbUsername.TabIndex = 0;
             // 
             // panel1
             // 
             panel1.BackColor = Color.White;
             panel1.Controls.Add(tbUsername);
-            panel1.Location = new Point(111, 227);
+            panel1.Location = new Point(97, 170);
+            panel1.Margin = new Padding(3, 2, 3, 2);
             panel1.Name = "panel1";
-            panel1.Size = new Size(259, 40);
+            panel1.Size = new Size(227, 30);
             panel1.TabIndex = 0;
             // 
             // panel2
             // 
             panel2.BackColor = Color.White;
             panel2.Controls.Add(textBox1);
-            panel2.Location = new Point(111, 291);
+            panel2.Location = new Point(97, 218);
+            panel2.Margin = new Padding(3, 2, 3, 2);
             panel2.Name = "panel2";
-            panel2.Size = new Size(259, 40);
+            panel2.Size = new Size(227, 30);
             panel2.TabIndex = 1;
             // 
             // textBox1
             // 
             textBox1.BorderStyle = BorderStyle.None;
-            textBox1.Location = new Point(20, 9);
+            textBox1.Location = new Point(18, 7);
+            textBox1.Margin = new Padding(3, 2, 3, 2);
             textBox1.Name = "textBox1";
             textBox1.PlaceholderText = "Password";
-            textBox1.Size = new Size(219, 20);
+            textBox1.Size = new Size(192, 16);
             textBox1.TabIndex = 0;
             // 
             // button1
             // 
-            button1.Location = new Point(176, 363);
+            button1.Location = new Point(154, 272);
+            button1.Margin = new Padding(3, 2, 3, 2);
             button1.Name = "button1";
-            button1.Size = new Size(137, 39);
+            button1.Size = new Size(120, 29);
             button1.TabIndex = 2;
             button1.Text = "Login";
             button1.UseVisualStyleBackColor = true;
@@ -91,9 +98,9 @@ namespace RMS.UI
             label1.BackColor = Color.Transparent;
             label1.Font = new Font("Constantia", 16.2F, FontStyle.Bold | FontStyle.Italic, GraphicsUnit.Point, 0);
             label1.ForeColor = SystemColors.ActiveCaptionText;
-            label1.Location = new Point(196, 103);
+            label1.Location = new Point(172, 77);
             label1.Name = "label1";
-            label1.Size = new Size(95, 35);
+            label1.Size = new Size(77, 27);
             label1.TabIndex = 6;
             label1.Text = "Login ";
             // 
@@ -103,26 +110,36 @@ namespace RMS.UI
             label2.BackColor = Color.Transparent;
             label2.Font = new Font("Constantia", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label2.ForeColor = SystemColors.ActiveCaptionText;
-            label2.Location = new Point(117, 155);
+            label2.Location = new Point(102, 116);
             label2.Name = "label2";
-            label2.Size = new Size(251, 24);
+            label2.Size = new Size(204, 19);
             label2.TabIndex = 7;
             label2.Text = "Fill your information below";
             // 
+            // pictureBox1
+            // 
+            pictureBox1.Dock = DockStyle.Fill;
+            pictureBox1.Location = new Point(0, 0);
+            pictureBox1.Name = "pictureBox1";
+            pictureBox1.Size = new Size(424, 450);
+            pictureBox1.SizeMode = PictureBoxSizeMode.StretchImage;
+            pictureBox1.TabIndex = 8;
+            pictureBox1.TabStop = false;
+            // 
             // SignIn
             // 
-            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackgroundImage = Properties.Resources.Artboard_1;
-            BackgroundImageLayout = ImageLayout.Stretch;
-            ClientSize = new Size(485, 600);
+            ClientSize = new Size(424, 450);
             Controls.Add(label2);
             Controls.Add(label1);
             Controls.Add(button1);
             Controls.Add(panel2);
             Controls.Add(panel1);
+            Controls.Add(pictureBox1);
             DoubleBuffered = true;
             Icon = (Icon)resources.GetObject("$this.Icon");
+            Margin = new Padding(3, 2, 3, 2);
             Name = "SignIn";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "SignIn";
@@ -130,6 +147,7 @@ namespace RMS.UI
             panel1.PerformLayout();
             panel2.ResumeLayout(false);
             panel2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -142,5 +160,6 @@ namespace RMS.UI
         private Button button1;
         private Label label1;
         private Label label2;
+        private PictureBox pictureBox1;
     }
 }

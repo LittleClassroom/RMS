@@ -29,60 +29,71 @@ namespace RMS.UI
             tbPassword.Enabled = !integrated;
         }
 
-        private void btnTest_Click(object sender, EventArgs e)
+        private async void btnTest_Click(object sender, EventArgs e)
         {
             var csb = BuildConnectionString();
             Cursor = Cursors.WaitCursor;
-            var ok = RMS.Global.TestConnection(csb);
-            Cursor = Cursors.Default;
-            _lastTestSucceeded = ok;
-            btnSaveData.Enabled = ok;
-            lbStatus.Text = ok ? "Connection successful" : "Connection failed";
+            try
+            {
+                using var conn = new SqlConnection(csb);
+                lbStatus.Text = "Testing connection...";
+                await conn.OpenAsync();
+                using var cmd = new SqlCommand("SELECT 1", conn);
+                await cmd.ExecuteScalarAsync();
+
+                _lastTestSucceeded = true;
+                btnSaveData.Enabled = true;
+                lbStatus.Text = "Connection successful";
+            }
+            catch (Exception ex)
+            {
+                _lastTestSucceeded = false;
+                btnSaveData.Enabled = false;
+                lbStatus.Text = "Connection failed: " + ex.Message;
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+            }
+        }
+
+        private static string FindProjectRoot()
+        {
+            var dir = AppContext.BaseDirectory ?? string.Empty;
+            var di = new DirectoryInfo(dir);
+            while (di != null)
+            {
+                try
+                {
+                    var files = di.GetFiles("*.csproj");
+                    if (files.Length > 0) return di.FullName;
+                }
+                catch { }
+                di = di.Parent;
+            }
+            // fallback to base directory
+            return AppContext.BaseDirectory ?? string.Empty;
         }
 
         private void btnSave_Click(object sender, EventArgs e)
         {
-            if (!_lastTestSucceeded)
-            {
-                MessageBox.Show(this, "Please test the connection successfully before saving.", "Cannot Save", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                lbStatus.Text = "Save prevented: test required.";
-                return;
-            }
-
-            var csb = BuildConnectionString();
-            Cursor = Cursors.WaitCursor;
-            var ok = RMS.Global.TestConnection(csb);
-            Cursor = Cursors.Default;
-            if (!ok)
-            {
-                MessageBox.Show(this, "Cannot save: connection test failed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                lbStatus.Text = "Test failed. Not saved.";
-                _lastTestSucceeded = false;
-                btnSaveData.Enabled = false;
-                return;
-            }
-
             try
             {
-                if (chkEncrypt.Checked)
-                {
-                    SecureConfig.SaveEncryptedConnectionString(csb, PathToCredFile());
-                }
-                else
-                {
-                    CredentialStore.SaveCredentials(csb);
-                }
+                var csb = BuildConnectionString();
 
+                // Save to the project folder (project root detected by locating a .csproj)
+                var projectFolder = FindProjectRoot();
+                var path = System.IO.Path.Combine(projectFolder, "db.creds");
+
+                SecureConfig.SaveEncryptedConnectionString(csb, path);
+                lbStatus.Text = $"Saved encrypted connection to: {path}";
+
+                // also set active connection in app
                 RMS.Global.SetConnection(csb);
-                lbStatus.Text = "Saved encrypted credentials.";
-                MessageBox.Show(this, "Credentials saved.", "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                DialogResult = DialogResult.OK;
-                Close();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, "Failed to save credentials: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                lbStatus.Text = "Save failed.";
+                MessageBox.Show(this, "Save failed: " + ex.Message, "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -90,35 +101,33 @@ namespace RMS.UI
         {
             try
             {
-                var cs = CredentialStore.LoadCredentials();
-                if (string.IsNullOrWhiteSpace(cs))
+                var projectFolder = FindProjectRoot();
+                var path = System.IO.Path.Combine(projectFolder, "db.creds");
+                if (!System.IO.File.Exists(path))
                 {
-                    lbStatus.Text = "No stored credentials found.";
+                    lbStatus.Text = "No stored credentials found in project folder.";
                     return;
                 }
 
-                var trimmed = cs.TrimStart();
-                if (trimmed.StartsWith('{'))
-                {
-                    using var doc = System.Text.Json.JsonDocument.Parse(cs);
-                    if (doc.RootElement.TryGetProperty("ConnectionString", out var cselt))
-                        cs = cselt.GetString() ?? string.Empty;
-                }
+                var connStr = SecureConfig.LoadEncryptedConnectionString(path);
 
-                var builder = new SqlConnectionStringBuilder(cs);
+                // Update Global connection and UI fields
+                RMS.Global.SetConnection(connStr);
+
+                var builder = new SqlConnectionStringBuilder(connStr);
                 tbServer.Text = builder.DataSource;
                 tbDatabase.Text = builder.InitialCatalog;
                 tbUser.Text = builder.UserID;
                 tbPassword.Text = builder.Password;
                 chkTrust.Checked = builder.TrustServerCertificate;
-                // detect integrated security
                 chkIntegrated.Checked = builder.IntegratedSecurity;
                 UpdateAuthControls();
-                lbStatus.Text = "Loaded credentials into form.";
+
+                lbStatus.Text = $"Loaded connection from: {path}";
             }
-            catch
+            catch (Exception ex)
             {
-                lbStatus.Text = "Failed to load credentials.";
+                MessageBox.Show(this, "Load failed: " + ex.Message, "Load Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -155,6 +164,11 @@ namespace RMS.UI
             var appFolder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CSharpAssignment");
             Directory.CreateDirectory(appFolder);
             return System.IO.Path.Combine(appFolder, "db.creds");
+        }
+
+        private void DbCredentialsForm_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }

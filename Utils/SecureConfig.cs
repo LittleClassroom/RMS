@@ -11,7 +11,7 @@ namespace RMS.Utils
     internal static class SecureConfig
     {
         // Replace this with a secure secret retrieved from a safe source if needed.
-        private const string AppSecret = "CSharpAssignment_Static_Secret_v1";
+        private const string AppSecret = "GUI_IT3C1_Static_Secret_v1";
 
         private const int SaltSize = 16;   // bytes
         private const int NonceSize = 12;  // bytes for AES-GCM
@@ -19,8 +19,7 @@ namespace RMS.Utils
         private const int KeySize = 32;    // 256-bit key
         private const int DeriveIterations = 100_000; // PBKDF2 iterations
 
-        // Save encrypted connection string as binary to the specified file.
-        // File layout: [salt(16)] [nonce(12)] [tag(16)] [ciphertext(...)]
+     
         public static void SaveEncryptedConnectionString(string connectionString, string filePath)
             => SaveEncryptedConnectionString(connectionString, filePath, AppSecret);
 
