@@ -1,41 +1,115 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
-using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using RMS.Models;
 using Microsoft.Data.SqlClient;
+using RMS.Models;
+using System.Reflection;
 
 namespace RMS.Controls
 {
     public partial class TablesView : UserControl
     {
         private List<TableInfo> _tables = new List<TableInfo>();
+        private readonly bool _isDesigner;
+        private bool _isLoading;
+        private System.Windows.Forms.Timer _refreshTimer;
+        private int _refreshSeconds = 3; // countdown interval (seconds)
+        private bool _autoRefreshEnabled = false;
 
         public TablesView()
         {
             InitializeComponent();
-            Load += TablesView_Load;
+             _isDesigner = LicenseManager.UsageMode == LicenseUsageMode.Designtime;
+             // reduce flicker by enabling double buffering for this control
+            try
+            {
+                SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
+                UpdateStyles();
+
+                // also enable double buffering on the internal FlowLayoutPanel (protected property)
+                var pinfo = typeof(FlowLayoutPanel).GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic);
+                pinfo?.SetValue(tablesFlowPanel, true, null);
+            }
+            catch { }
+
+             if (!_isDesigner)
+             {
+                 Load += TablesView_Load;
+             }
+            else
+            {
+                RenderDesignState();
+            }
+
+            // start timer but only perform auto-refresh when enabled
+            try
+            {
+                _refreshTimer = new System.Windows.Forms.Timer();
+                _refreshTimer.Interval = 1000; // 1s tick
+                _refreshTimer.Tick += (s, e) => OnRefreshTimerTick();
+                _refreshTimer.Start();
+            }
+            catch { }
         }
 
         private async void TablesView_Load(object? sender, EventArgs e)
         {
-            // Load tables from the database instead of using sample data
+            await LoadTablesAsync();
+        }
+
+        public void RefreshTables()
+        {
+            if (_isDesigner)
+            {
+                return;
+            }
+
+            _ = LoadTablesAsync();
+        }
+
+        private async Task LoadTablesAsync()
+        {
+            if (_isLoading || _isDesigner) return;
+
             var connString = Global.CurrentConnectionString;
             if (string.IsNullOrWhiteSpace(connString))
             {
                 MessageBox.Show(this, "Database connection not available.", "Tables", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
             try
             {
-                _tables = await System.Threading.Tasks.Task.Run(() => FetchTables(connString));
+                _isLoading = true;
+                var tables = await Task.Run(() => FetchTables(connString));
+                _tables = tables;
+                PopulateButtons();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, "Failed to load tables: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, "Failed to load tables: " + ex.Message, "Tables", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 _tables = new List<TableInfo>();
+                PopulateButtons();
             }
+            finally
+            {
+                _isLoading = false;
+                // reset countdown
+                _refreshSeconds = 3;
+            }
+        }
+
+        private void RenderDesignState()
+        {
+            _tables = new List<TableInfo>
+            {
+                new TableInfo("T01", "Main", 4, TableStatus.Available),
+                new TableInfo("T02", "Patio", 6, TableStatus.Occupied),
+                new TableInfo("T03", "Booth", 2, TableStatus.Reserved)
+            };
             PopulateButtons();
         }
 
@@ -65,12 +139,22 @@ namespace RMS.Controls
 
         private void PopulateButtons()
         {
-            tablesFlowPanel.Controls.Clear();
-
-            foreach (var t in _tables)
+            // minimize layout passes to avoid UI flicker
+            tablesFlowPanel.SuspendLayout();
+            try
             {
-                var btn = CreateTableButton(t);
-                tablesFlowPanel.Controls.Add(btn);
+                tablesFlowPanel.Controls.Clear();
+                foreach (var t in _tables)
+                {
+                    var btn = CreateTableButton(t);
+                    tablesFlowPanel.Controls.Add(btn);
+                }
+            }
+            finally
+            {
+                tablesFlowPanel.ResumeLayout(false);
+                tablesFlowPanel.PerformLayout();
+                tablesFlowPanel.Invalidate();
             }
         }
 
@@ -308,6 +392,43 @@ namespace RMS.Controls
                 TableStatus.OutOfService => Color.FromArgb(158, 158, 158),
                 _ => Color.Gray,
             };
+        }
+
+        private async void BtnRefresh_Click(object? sender, EventArgs e)
+        {
+            await LoadTablesAsync();
+        }
+
+        private void OnRefreshTimerTick()
+        {
+            try
+            {
+                // only auto-refresh when enabled
+                if (!_autoRefreshEnabled) return;
+
+                if (_refreshSeconds > 0) _refreshSeconds--;
+
+                // perform auto-refresh when countdown reaches zero and control not already loading
+                if (_refreshSeconds == 0 && !_isLoading && !_isDesigner)
+                {
+                    _ = LoadTablesAsync();
+                    _refreshSeconds = 3; // reset
+                }
+            }
+            catch { }
+        }
+
+        // wired from designer: toggle auto-refresh on/off
+        private void BtnAutoRefresh_Click(object? sender, EventArgs e)
+        {
+            _autoRefreshEnabled = !_autoRefreshEnabled;
+            try
+            {
+                btnAutoRefresh.Text = _autoRefreshEnabled ? "Auto: On" : "Auto: Off";
+            }
+            catch { }
+            // reset countdown when enabling
+            if (_autoRefreshEnabled) _refreshSeconds = 3;
         }
     }
 }

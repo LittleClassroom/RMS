@@ -20,6 +20,7 @@ namespace RMS.Controls
         private TextBox tbSearch;
         private ListBox lbFloors;
         private Panel legendPanel;
+        private ToolTip _toolTip;
 
         private readonly List<TableInfo> _tables = new List<TableInfo>();
         private TableLayoutPanel layout;
@@ -59,6 +60,17 @@ namespace RMS.Controls
 
             // build legend controls at runtime to avoid complex constructs in InitializeComponent
             BuildLegendControls();
+
+            // create tooltip for controls
+            try
+            {
+                _toolTip = new ToolTip();
+                _toolTip.SetToolTip(btnRefresh, "Reload table map from database");
+            }
+            catch
+            {
+                // ignore tooltip failures in constrained environments
+            }
         }
 
         private void InitializeComponent()

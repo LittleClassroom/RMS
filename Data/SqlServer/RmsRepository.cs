@@ -308,10 +308,12 @@ OUTPUT INSERTED.OrderId VALUES (@t, @s, @tax, @total, 1)", cn, tx);
         public OrderSummary? GetOpenOrderForTable(int tableId)
         {
             using var cn = new SqlConnection(_conn);
-            using var cmd = new SqlCommand(@"SELECT TOP 1 OrderId, Subtotal, Tax, Total, Status, IsPaid
-FROM dbo.Orders
-WHERE TableId = @tableId AND IsPaid = 0 AND Status IN (0, 1, 2)
-ORDER BY CreatedAtUtc DESC", cn);
+            using var cmd = new SqlCommand(@"SELECT TOP 1 o.OrderId, o.TableId, o.Subtotal, o.Tax, o.Total, o.Status, o.IsPaid, o.CreatedAtUtc,
+       t.Code, t.Location
+FROM dbo.Orders o
+LEFT JOIN dbo.Tables t ON t.TableId = o.TableId
+WHERE o.TableId = @tableId AND o.IsPaid = 0 AND o.Status IN (0, 1, 2)
+ORDER BY o.CreatedAtUtc DESC", cn);
             cmd.Parameters.AddWithValue("@tableId", tableId);
             cn.Open();
             using var rdr = cmd.ExecuteReader();
@@ -323,49 +325,77 @@ ORDER BY CreatedAtUtc DESC", cn);
             return new OrderSummary
             {
                 OrderId = rdr.GetInt32(0),
-                Subtotal = rdr.IsDBNull(1) ? 0m : rdr.GetDecimal(1),
-                Tax = rdr.IsDBNull(2) ? 0m : rdr.GetDecimal(2),
-                Total = rdr.IsDBNull(3) ? 0m : rdr.GetDecimal(3),
-                Status = rdr.IsDBNull(4) ? (byte)0 : rdr.GetByte(4),
-                IsPaid = !rdr.IsDBNull(5) && rdr.GetBoolean(5)
+                TableId = rdr.IsDBNull(1) ? 0 : rdr.GetInt32(1),
+                Subtotal = rdr.IsDBNull(2) ? 0m : rdr.GetDecimal(2),
+                Tax = rdr.IsDBNull(3) ? 0m : rdr.GetDecimal(3),
+                Total = rdr.IsDBNull(4) ? 0m : rdr.GetDecimal(4),
+                Status = rdr.IsDBNull(5) ? (byte)0 : rdr.GetByte(5),
+                IsPaid = !rdr.IsDBNull(6) && rdr.GetBoolean(6),
+                CreatedAtUtc = rdr.IsDBNull(7) ? DateTime.UtcNow : rdr.GetDateTime(7),
+                TableCode = rdr.IsDBNull(8) ? string.Empty : rdr.GetString(8),
+                Location = rdr.IsDBNull(9) ? null : rdr.GetString(9)
             };
         }
 
-        public IReadOnlyList<OrderLineDetail> GetOrderLines(int orderId)
+        public OrderSummary? GetOrderById(int orderId)
         {
-            var list = new List<OrderLineDetail>();
             using var cn = new SqlConnection(_conn);
-            using var cmd = new SqlCommand(@"SELECT ol.OrderLineId, ol.MenuItemId, COALESCE(mi.Name, 'Item #' + CAST(ol.MenuItemId AS varchar(12))) AS Name,
-       ol.Quantity, ol.UnitPrice
-FROM dbo.OrderLines ol
-LEFT JOIN dbo.MenuItems mi ON mi.MenuItemId = ol.MenuItemId
-WHERE ol.OrderId = @orderId
-ORDER BY ol.OrderLineId", cn);
+            using var cmd = new SqlCommand(@"SELECT o.OrderId, o.TableId, o.Subtotal, o.Tax, o.Total, o.Status, o.IsPaid, o.CreatedAtUtc,
+       t.Code, t.Location
+FROM dbo.Orders o
+LEFT JOIN dbo.Tables t ON t.TableId = o.TableId
+WHERE o.OrderId = @orderId", cn);
             cmd.Parameters.AddWithValue("@orderId", orderId);
+            cn.Open();
+            using var rdr = cmd.ExecuteReader();
+            if (!rdr.Read())
+            {
+                return null;
+            }
+
+            return new OrderSummary
+            {
+                OrderId = rdr.GetInt32(0),
+                TableId = rdr.IsDBNull(1) ? 0 : rdr.GetInt32(1),
+                Subtotal = rdr.IsDBNull(2) ? 0m : rdr.GetDecimal(2),
+                Tax = rdr.IsDBNull(3) ? 0m : rdr.GetDecimal(3),
+                Total = rdr.IsDBNull(4) ? 0m : rdr.GetDecimal(4),
+                Status = rdr.IsDBNull(5) ? (byte)0 : rdr.GetByte(5),
+                IsPaid = !rdr.IsDBNull(6) && rdr.GetBoolean(6),
+                CreatedAtUtc = rdr.IsDBNull(7) ? DateTime.UtcNow : rdr.GetDateTime(7),
+                TableCode = rdr.IsDBNull(8) ? string.Empty : rdr.GetString(8),
+                Location = rdr.IsDBNull(9) ? null : rdr.GetString(9)
+            };
+        }
+
+        public IReadOnlyList<ActiveOrderInfo> GetActiveOrders()
+        {
+            var list = new List<ActiveOrderInfo>();
+            using var cn = new SqlConnection(_conn);
+            using var cmd = new SqlCommand(@"SELECT o.OrderId, o.TableId, t.Code, t.Location, o.Subtotal, o.Tax, o.Total, o.Status, o.IsPaid, o.CreatedAtUtc
+FROM dbo.Orders o
+LEFT JOIN dbo.Tables t ON t.TableId = o.TableId
+WHERE o.Status IN (0, 1, 2, 3)
+ORDER BY CASE WHEN o.IsPaid = 1 THEN 1 ELSE 0 END, o.CreatedAtUtc DESC", cn);
             cn.Open();
             using var rdr = cmd.ExecuteReader();
             while (rdr.Read())
             {
-                var quantityValue = rdr.GetValue(3);
-                var quantity = quantityValue switch
+                list.Add(new ActiveOrderInfo
                 {
-                    int i => i,
-                    short s => s,
-                    long l => (int)l,
-                    decimal d => (int)d,
-                    double dbl => (int)dbl,
-                    _ => Convert.ToInt32(quantityValue)
-                };
-
-                list.Add(new OrderLineDetail
-                {
-                    OrderLineId = rdr.GetInt32(0),
-                    MenuItemId = rdr.GetInt32(1),
-                    Name = rdr.IsDBNull(2) ? string.Empty : rdr.GetString(2),
-                    Quantity = quantity,
-                    UnitPrice = rdr.GetDecimal(4)
+                    OrderId = rdr.GetInt32(0),
+                    TableId = rdr.IsDBNull(1) ? 0 : rdr.GetInt32(1),
+                    TableCode = rdr.IsDBNull(2) ? string.Empty : rdr.GetString(2),
+                    Location = rdr.IsDBNull(3) ? null : rdr.GetString(3),
+                    Subtotal = rdr.IsDBNull(4) ? 0m : rdr.GetDecimal(4),
+                    Tax = rdr.IsDBNull(5) ? 0m : rdr.GetDecimal(5),
+                    Total = rdr.IsDBNull(6) ? 0m : rdr.GetDecimal(6),
+                    Status = rdr.IsDBNull(7) ? (byte)0 : rdr.GetByte(7),
+                    IsPaid = !rdr.IsDBNull(8) && rdr.GetBoolean(8),
+                    CreatedAtUtc = rdr.IsDBNull(9) ? DateTime.UtcNow : rdr.GetDateTime(9)
                 });
             }
+
             return list;
         }
 
@@ -422,6 +452,88 @@ ORDER BY ol.OrderLineId", cn);
             using var cn = new SqlConnection(_conn);
             using var cmd = new SqlCommand("UPDATE dbo.Orders SET Status = 3, IsPaid = 1 WHERE OrderId = @orderId", cn);
             cmd.Parameters.AddWithValue("@orderId", orderId);
+            cn.Open();
+            cmd.ExecuteNonQuery();
+        }
+
+        public IReadOnlyList<OrderLineDetail> GetOrderLines(int orderId)
+        {
+            var list = new List<OrderLineDetail>();
+            using var cn = new SqlConnection(_conn);
+            using var cmd = new SqlCommand(@"SELECT ol.OrderLineId, ol.MenuItemId, COALESCE(mi.Name, 'Item #' + CAST(ol.MenuItemId AS varchar(12))) AS Name,
+       ol.Quantity, ol.UnitPrice
+FROM dbo.OrderLines ol
+LEFT JOIN dbo.MenuItems mi ON mi.MenuItemId = ol.MenuItemId
+WHERE ol.OrderId = @orderId
+ORDER BY ol.OrderLineId", cn);
+            cmd.Parameters.AddWithValue("@orderId", orderId);
+            cn.Open();
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                var quantityValue = rdr.GetValue(3);
+                var quantity = quantityValue switch
+                {
+                    int i => i,
+                    short s => s,
+                    long l => (int)l,
+                    decimal d => (int)d,
+                    double dbl => (int)dbl,
+                    _ => Convert.ToInt32(quantityValue)
+                };
+
+                list.Add(new OrderLineDetail
+                {
+                    OrderLineId = rdr.GetInt32(0),
+                    MenuItemId = rdr.GetInt32(1),
+                    Name = rdr.IsDBNull(2) ? string.Empty : rdr.GetString(2),
+                    Quantity = quantity,
+                    UnitPrice = rdr.GetDecimal(4)
+                });
+            }
+            return list;
+        }
+
+        public int InsertTable(TableInfo table)
+        {
+            using var cn = new SqlConnection(_conn);
+            using var cmd = new SqlCommand(@"INSERT INTO dbo.Tables (Code, Location, Capacity, Status, Notes)
+OUTPUT INSERTED.TableId VALUES (@code, @loc, @cap, @status, @notes)", cn);
+            cmd.Parameters.AddWithValue("@code", table.Code);
+            cmd.Parameters.AddWithValue("@loc", (object?)table.Location ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@cap", table.Capacity);
+            cmd.Parameters.AddWithValue("@status", (byte)table.Status);
+            cmd.Parameters.AddWithValue("@notes", (object?)table.Notes ?? DBNull.Value);
+            cn.Open();
+            var id = (int)cmd.ExecuteScalar();
+            return id;
+        }
+
+        public void UpdateTable(TableInfo table)
+        {
+            using var cn = new SqlConnection(_conn);
+            using var cmd = new SqlCommand(@"UPDATE dbo.Tables
+SET Code = @code,
+    Location = @loc,
+    Capacity = @cap,
+    Status = @status,
+    Notes = @notes
+WHERE TableId = @id", cn);
+            cmd.Parameters.AddWithValue("@id", table.TableId);
+            cmd.Parameters.AddWithValue("@code", table.Code);
+            cmd.Parameters.AddWithValue("@loc", (object?)table.Location ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@cap", table.Capacity);
+            cmd.Parameters.AddWithValue("@status", (byte)table.Status);
+            cmd.Parameters.AddWithValue("@notes", (object?)table.Notes ?? DBNull.Value);
+            cn.Open();
+            cmd.ExecuteNonQuery();
+        }
+
+        public void DeleteTable(int tableId)
+        {
+            using var cn = new SqlConnection(_conn);
+            using var cmd = new SqlCommand("DELETE FROM dbo.Tables WHERE TableId = @id", cn);
+            cmd.Parameters.AddWithValue("@id", tableId);
             cn.Open();
             cmd.ExecuteNonQuery();
         }

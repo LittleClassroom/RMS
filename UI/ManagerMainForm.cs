@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Windows.Forms;
 using RMS.Controls;
 using RMS.Models;
@@ -37,7 +36,17 @@ namespace RMS.UI
             var page = tabMain.SelectedTab;
             if (page == tabOperations)
             {
-                LoadOperationsTab();
+                managerOperationsTablesView?.RefreshTables();
+                return;
+            }
+            if (page == tabOrders)
+            {
+                managerStaffOrderView?.Refresh();
+                return;
+            }
+            if (page == tabTables)
+            {
+                _ = manageTablesView?.ReloadDataAsync();
                 return;
             }
             if (page == tabMenu)
@@ -101,67 +110,6 @@ namespace RMS.UI
             lblKpiLowStock.Text = stats.LowStockItems.ToString();
         }
 
-        private void LoadOperationsTab()
-        {
-            // Clear existing controls
-            splitOperations.Panel1.Controls.Clear();
-            splitOperations.Panel2.Controls.Clear();
-
-            // Add TableMapView to left panel
-            var tableMapView = new TableMapView { Dock = DockStyle.Fill };
-            tableMapView.TableSelected += TableMapView_TableSelected;
-            splitOperations.Panel1.Controls.Add(tableMapView);
-
-            // Add placeholder or order panel to right panel
-            var placeholderLabel = new Label
-            {
-                Text = "Select a table to start an order",
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Segoe UI", 14F),
-                ForeColor = Color.Gray
-            };
-            splitOperations.Panel2.Controls.Add(placeholderLabel);
-        }
-
-        private void TableMapView_TableSelected(object? sender, TableSelectedEventArgs e)
-        {
-            // Clear right panel and add OrderPanel
-            splitOperations.Panel2.Controls.Clear();
-
-            var orderPanel = new OrderPanel { Dock = DockStyle.Fill };
-            orderPanel.OrderCompleted += OrderPanel_OrderCompleted;
-
-            splitOperations.Panel2.Controls.Add(orderPanel);
-
-            // Load the table's order
-            _ = orderPanel.LoadTableOrder(e.Table);
-        }
-
-        private void OrderPanel_OrderCompleted(object? sender, OrderCompletedEventArgs e)
-        {
-            // Return to placeholder view
-            splitOperations.Panel2.Controls.Clear();
-            var placeholderLabel = new Label
-            {
-                Text = e.OrderId.HasValue
-                    ? $"Order #{e.OrderId} completed! Select another table to continue."
-                    : "Select a table to start an order",
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Segoe UI", 14F),
-                ForeColor = Color.Gray
-            };
-            splitOperations.Panel2.Controls.Add(placeholderLabel);
-
-            // Refresh table map to update table status
-            var tableMapView = splitOperations.Panel1.Controls.OfType<TableMapView>().FirstOrDefault();
-            if (tableMapView != null)
-            {
-                tableMapView?.RefreshTables();
-            }
-        }
-
         private void LoadStaffTab()
         {
             tabStaff.Controls.Clear();
@@ -215,6 +163,12 @@ namespace RMS.UI
                 "About RMS",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
+        }
+
+        private void viewLogsToolStripMenuItem_Click(object? sender, EventArgs e)
+        {
+            using var dlg = new LogsForm();
+            dlg.ShowDialog(this);
         }
 
         private void settingsToolStripMenuItem_Click(object sender, EventArgs e)

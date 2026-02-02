@@ -5,7 +5,10 @@ namespace RMS.Controls
         private System.ComponentModel.IContainer components = null;
         private System.Windows.Forms.Panel headerPanel;
         private System.Windows.Forms.Label lblTitle;
+        private System.Windows.Forms.Button btnRefresh;
+        private System.Windows.Forms.Button btnAutoRefresh;
         private System.Windows.Forms.FlowLayoutPanel tablesFlowPanel;
+        private System.Windows.Forms.FlowLayoutPanel legendFlow;
         private System.Windows.Forms.Panel legendPanel;
 
         protected override void Dispose(bool disposing)
@@ -19,63 +22,106 @@ namespace RMS.Controls
 
         private void InitializeComponent()
         {
-            this.headerPanel = new System.Windows.Forms.Panel();
-            this.lblTitle = new System.Windows.Forms.Label();
-            this.legendPanel = new System.Windows.Forms.Panel();
-            this.tablesFlowPanel = new System.Windows.Forms.FlowLayoutPanel();
-
-            this.SuspendLayout();
-
+            headerPanel = new Panel();
+            lblTitle = new Label();
+            btnRefresh = new Button();
+            btnAutoRefresh = new Button();
+            legendPanel = new Panel();
+            legendFlow = new FlowLayoutPanel();
+            tablesFlowPanel = new FlowLayoutPanel();
+            headerPanel.SuspendLayout();
+            legendPanel.SuspendLayout();
+            SuspendLayout();
+            // 
             // headerPanel
-            this.headerPanel.Dock = System.Windows.Forms.DockStyle.Top;
-            this.headerPanel.Height = 60;
-            this.headerPanel.BackColor = System.Drawing.Color.FromArgb(245, 245, 245);
-            this.headerPanel.Padding = new System.Windows.Forms.Padding(16, 12, 16, 12);
-
+            // 
+            headerPanel.BackColor = Color.FromArgb(245, 245, 245);
+            headerPanel.Controls.Add(lblTitle);
+            headerPanel.Controls.Add(btnRefresh);
+            headerPanel.Controls.Add(btnAutoRefresh);
+            headerPanel.Dock = DockStyle.Top;
+            headerPanel.Location = new Point(0, 0);
+            headerPanel.Name = "headerPanel";
+            headerPanel.Padding = new Padding(16, 12, 16, 12);
+            headerPanel.Size = new Size(800, 60);
+            headerPanel.TabIndex = 2;
+            // 
             // lblTitle
-            this.lblTitle.Text = "🪑 Table Status";
-            this.lblTitle.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold);
-            this.lblTitle.AutoSize = true;
-            this.lblTitle.Location = new System.Drawing.Point(16, 14);
-            this.headerPanel.Controls.Add(this.lblTitle);
-
+            // 
+            lblTitle.AutoSize = true;
+            lblTitle.Dock = DockStyle.Left;
+            lblTitle.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
+            lblTitle.Location = new Point(16, 12);
+            lblTitle.Name = "lblTitle";
+            lblTitle.Size = new Size(191, 32);
+            lblTitle.TabIndex = 0;
+            lblTitle.Text = "\U0001fa91 Table Status";
+            // 
+            // btnRefresh
+            // 
+            btnRefresh.AutoSize = true;
+            btnRefresh.Dock = DockStyle.Right;
+            btnRefresh.FlatStyle = FlatStyle.System;
+            btnRefresh.Location = new Point(609, 12);
+            btnRefresh.Name = "btnRefresh";
+            btnRefresh.Size = new Size(75, 36);
+            btnRefresh.TabIndex = 1;
+            btnRefresh.Text = "Refresh";
+            btnRefresh.Click += BtnRefresh_Click;
+            // 
+            // btnAutoRefresh
+            // 
+            btnAutoRefresh.AutoSize = true;
+            btnAutoRefresh.Dock = DockStyle.Right;
+            btnAutoRefresh.FlatStyle = FlatStyle.System;
+            btnAutoRefresh.Location = new Point(684, 12);
+            btnAutoRefresh.Name = "btnAutoRefresh";
+            btnAutoRefresh.Size = new Size(100, 36);
+            btnAutoRefresh.TabIndex = 2;
+            btnAutoRefresh.Text = "Auto: Off";
+            btnAutoRefresh.Click += BtnAutoRefresh_Click;
+            // 
             // legendPanel
-            this.legendPanel.Dock = System.Windows.Forms.DockStyle.Top;
-            this.legendPanel.Height = 40;
-            this.legendPanel.BackColor = System.Drawing.Color.White;
-            this.legendPanel.Padding = new System.Windows.Forms.Padding(16, 8, 16, 8);
-
-            var legendFlow = new System.Windows.Forms.FlowLayoutPanel
-            {
-                Dock = System.Windows.Forms.DockStyle.Fill,
-                FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight,
-                WrapContents = false
-            };
-
-            AddLegendItem(legendFlow, "Available", System.Drawing.Color.FromArgb(76, 175, 80));
-            AddLegendItem(legendFlow, "Reserved", System.Drawing.Color.FromArgb(255, 193, 7));
-            AddLegendItem(legendFlow, "Occupied", System.Drawing.Color.FromArgb(244, 67, 54));
-            AddLegendItem(legendFlow, "Needs Cleaning", System.Drawing.Color.FromArgb(156, 39, 176));
-            AddLegendItem(legendFlow, "Out of Service", System.Drawing.Color.FromArgb(158, 158, 158));
-
-            this.legendPanel.Controls.Add(legendFlow);
-
+            // 
+            legendPanel.BackColor = Color.White;
+            legendPanel.Controls.Add(legendFlow);
+            legendPanel.Dock = DockStyle.Top;
+            legendPanel.Location = new Point(0, 60);
+            legendPanel.Name = "legendPanel";
+            legendPanel.Padding = new Padding(16, 8, 16, 8);
+            legendPanel.Size = new Size(800, 40);
+            legendPanel.TabIndex = 1;
+            // 
+            // legendFlow
+            // 
+            legendFlow.Location = new Point(0, 0);
+            legendFlow.Name = "legendFlow";
+            legendFlow.Size = new Size(200, 100);
+            legendFlow.TabIndex = 0;
+            // 
             // tablesFlowPanel
-            this.tablesFlowPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tablesFlowPanel.AutoScroll = true;
-            this.tablesFlowPanel.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
-            this.tablesFlowPanel.WrapContents = true;
-            this.tablesFlowPanel.Padding = new System.Windows.Forms.Padding(16);
-            this.tablesFlowPanel.BackColor = System.Drawing.Color.White;
-
+            // 
+            tablesFlowPanel.AutoScroll = true;
+            tablesFlowPanel.BackColor = Color.White;
+            tablesFlowPanel.Dock = DockStyle.Fill;
+            tablesFlowPanel.Location = new Point(0, 100);
+            tablesFlowPanel.Name = "tablesFlowPanel";
+            tablesFlowPanel.Padding = new Padding(16);
+            tablesFlowPanel.Size = new Size(800, 400);
+            tablesFlowPanel.TabIndex = 0;
+            // 
             // TablesView
-            this.Controls.Add(this.tablesFlowPanel);
-            this.Controls.Add(this.legendPanel);
-            this.Controls.Add(this.headerPanel);
-            this.Name = "TablesView";
-            this.Size = new System.Drawing.Size(800, 500);
-            this.BackColor = System.Drawing.Color.White;
-            this.ResumeLayout(false);
+            // 
+            BackColor = Color.White;
+            Controls.Add(tablesFlowPanel);
+            Controls.Add(legendPanel);
+            Controls.Add(headerPanel);
+            Name = "TablesView";
+            Size = new Size(800, 500);
+            headerPanel.ResumeLayout(false);
+            headerPanel.PerformLayout();
+            legendPanel.ResumeLayout(false);
+            ResumeLayout(false);
         }
 
         private void AddLegendItem(System.Windows.Forms.FlowLayoutPanel panel, string text, System.Drawing.Color color)

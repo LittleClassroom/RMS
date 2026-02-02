@@ -3,11 +3,13 @@ using System.Windows.Forms;
 using RMS.Models;
 using Microsoft.Data.SqlClient;
 using RMS.Utils;
+using NLog;
 
 namespace RMS.UI
 {
     public partial class SignIn : Form
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         public string? AuthenticatedUser { get; private set; }
         public UserRole AuthenticatedRole { get; private set; }
 
@@ -27,8 +29,11 @@ namespace RMS.UI
             string username = tbUsername.Text.Trim();
             string password = textBox1.Text;
 
+            Logger.Info("Login attempt for user '{username}'", username);
+
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
+                Logger.Warn("Login failed for '{username}' - missing username or password", username);
                 MessageBox.Show("Please enter both username and password.", 
                     "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -39,6 +44,7 @@ namespace RMS.UI
             {
                 if (string.IsNullOrWhiteSpace(RMS.Global.CurrentConnectionString))
                 {
+                    Logger.Warn("Login failed for '{username}' - database not configured", username);
                     MessageBox.Show(this, "Database connection is not configured. Open Settings -> DB Credentials.", "No DB", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
@@ -51,6 +57,7 @@ namespace RMS.UI
                 if (!rdr.Read())
                 {
                     // not found
+                    Logger.Warn("Login failed for '{username}' - user not found", username);
                     MessageBox.Show("Invalid username or password.", "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     textBox1.Clear();
                     textBox1.Focus();
@@ -66,6 +73,7 @@ namespace RMS.UI
 
                 if (!isActive)
                 {
+                    Logger.Warn("Login failed for '{username}' - account disabled (userId={userId})", username, userId);
                     MessageBox.Show(this, "This account is disabled.", "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
@@ -73,6 +81,7 @@ namespace RMS.UI
                 var ok = PasswordHasher.Verify(password, passwordHash);
                 if (!ok)
                 {
+                    Logger.Warn("Login failed for '{username}' - invalid password", username);
                     MessageBox.Show(this, "Invalid username or password.", "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     textBox1.Clear();
                     textBox1.Focus();
@@ -89,6 +98,7 @@ namespace RMS.UI
                         upd.Parameters.AddWithValue("@h", newHash);
                         upd.Parameters.AddWithValue("@id", userId);
                         upd.ExecuteNonQuery();
+                        Logger.Info("Re-hashed legacy password for userId={userId}", userId);
                     }
                     catch
                     {
@@ -98,11 +108,13 @@ namespace RMS.UI
 
                 AuthenticatedUser = display;
                 AuthenticatedRole = role;
+                Logger.Info("Login successful for '{display}' (userId={userId}) role={role}", display, userId, role);
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
             catch (Exception ex)
             {
+                Logger.Error(ex, "Failed to authenticate user '{username}'", username);
                 MessageBox.Show(this, "Failed to authenticate: " + ex.Message, "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
