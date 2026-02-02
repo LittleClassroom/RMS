@@ -19,17 +19,52 @@ namespace RMS
 
         public static StorageBackend PreferredBackend { get; set; } = StorageBackend.Auto;
 
-        private static readonly string CredFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CSharpAssignment", "db.creds");
+        // Find project root by locating a .csproj file in parent directories of the app base.
+        // Only the project-root-local `db.creds` will be used. If none found, operations will fail
+        // instead of falling back to other stores.
+        private static string? FindProjectRoot()
+        {
+            try
+            {
+                var dir = new DirectoryInfo(AppContext.BaseDirectory ?? string.Empty);
+                while (dir != null)
+                {
+                    try
+                    {
+                        var files = dir.GetFiles("*.csproj");
+                        if (files.Length > 0) return dir.FullName;
+                    }
+                    catch { }
+                    dir = dir.Parent;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        // Public accessor for callers that want to know which project-local credential file would be used.
+        public static string GetCredentialFilePath()
+        {
+            var root = FindProjectRoot();
+            if (string.IsNullOrEmpty(root)) return string.Empty;
+            return Path.Combine(root, "db.creds");
+        }
 
         public static bool LoadFromStore()
         {
             try
             {
-                var cs = CredentialStore.LoadCredentials();
-                if (string.IsNullOrWhiteSpace(cs)) return false;
+                // Only use project-root-local db.creds. Do not fall back to AppData or other stores.
+                var projectRoot = FindProjectRoot();
+                if (string.IsNullOrEmpty(projectRoot)) return false;
+                var path = Path.Combine(projectRoot, "db.creds");
+                if (!File.Exists(path)) return false;
 
-                CurrentConnectionString = cs;
-                SqlCon = new SqlConnection(cs);
+                var csLocal = SecureConfig.LoadEncryptedConnectionString(path);
+                if (string.IsNullOrWhiteSpace(csLocal)) return false;
+
+                CurrentConnectionString = csLocal;
+                SqlCon = new SqlConnection(csLocal);
                 return true;
             }
             catch
@@ -63,29 +98,19 @@ namespace RMS
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(CredFilePath) ?? string.Empty);
+                var projectRoot = FindProjectRoot();
+                if (string.IsNullOrEmpty(projectRoot)) return false;
+                var path = Path.Combine(projectRoot, "db.creds");
+                Directory.CreateDirectory(Path.GetDirectoryName(path) ?? string.Empty);
 
-                switch (PreferredBackend)
+                // Persist only to the project-local file using AES-GCM. Do not write AppData store.
+                if (!string.IsNullOrEmpty(passphrase))
                 {
-                    case StorageBackend.AESGcm:
-                        if (!string.IsNullOrEmpty(passphrase))
-                        {
-                            SecureConfig.SaveEncryptedConnectionString(connectionString, CredFilePath, passphrase);
-                        }
-                        else
-                        {
-                            SecureConfig.SaveEncryptedConnectionString(connectionString, CredFilePath);
-                        }
-                        break;
-
-                    case StorageBackend.DPAPI:
-                        CredentialStore.SaveCredentials(connectionString, forceDpapi: true);
-                        break;
-
-                    case StorageBackend.Auto:
-                    default:
-                        CredentialStore.SaveCredentials(connectionString);
-                        break;
+                    SecureConfig.SaveEncryptedConnectionString(connectionString, path, passphrase);
+                }
+                else
+                {
+                    SecureConfig.SaveEncryptedConnectionString(connectionString, path);
                 }
 
                 SetConnection(connectionString);
@@ -101,7 +126,17 @@ namespace RMS
         {
             try
             {
-                CredentialStore.ClearCredentials();
+                // Remove only project-local db.creds
+                var projectRoot = FindProjectRoot();
+                if (!string.IsNullOrEmpty(projectRoot))
+                {
+                    try
+                    {
+                        var local = Path.Combine(projectRoot, "db.creds");
+                        if (File.Exists(local)) File.Delete(local);
+                    }
+                    catch { }
+                }
             }
             catch
             {
@@ -110,8 +145,6 @@ namespace RMS
             CurrentConnectionString = null;
             SqlCon = null;
         }
-
-        public static string GetCredentialFilePath() => CredFilePath;
     }
 }
 

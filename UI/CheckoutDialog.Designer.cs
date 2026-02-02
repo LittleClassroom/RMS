@@ -11,81 +11,82 @@ namespace RMS.UI
 
         private void InitializeComponent()
         {
-            this.lblSubtotal = new System.Windows.Forms.Label();
-            this.lblTax = new System.Windows.Forms.Label();
-            this.lblTotal = new System.Windows.Forms.Label();
-            this.btnConfirm = new System.Windows.Forms.Button();
-            this.btnCancel = new System.Windows.Forms.Button();
-            this.SuspendLayout();
+            lblSubtotal = new Label();
+            lblTax = new Label();
+            lblTotal = new Label();
+            btnConfirm = new Button();
+            btnCancel = new Button();
+            SuspendLayout();
             // 
             // lblSubtotal
             // 
-            this.lblSubtotal.AutoSize = true;
-            this.lblSubtotal.Location = new System.Drawing.Point(30, 30);
-            this.lblSubtotal.Name = "lblSubtotal";
-            this.lblSubtotal.Size = new System.Drawing.Size(60, 15);
-            this.lblSubtotal.TabIndex = 0;
-            this.lblSubtotal.Text = "Subtotal: $0.00";
+            lblSubtotal.AutoSize = true;
+            lblSubtotal.Location = new Point(30, 30);
+            lblSubtotal.Name = "lblSubtotal";
+            lblSubtotal.Size = new Size(84, 15);
+            lblSubtotal.TabIndex = 0;
+            lblSubtotal.Text = "Subtotal: $0.00";
             // 
             // lblTax
             // 
-            this.lblTax.AutoSize = true;
-            this.lblTax.Location = new System.Drawing.Point(30, 60);
-            this.lblTax.Name = "lblTax";
-            this.lblTax.Size = new System.Drawing.Size(32, 15);
-            this.lblTax.TabIndex = 1;
-            this.lblTax.Text = "Tax: $0.00";
+            lblTax.AutoSize = true;
+            lblTax.Location = new Point(30, 60);
+            lblTax.Name = "lblTax";
+            lblTax.Size = new Size(57, 15);
+            lblTax.TabIndex = 1;
+            lblTax.Text = "Tax: $0.00";
             // 
             // lblTotal
             // 
-            this.lblTotal.AutoSize = true;
-            this.lblTotal.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.lblTotal.Location = new System.Drawing.Point(30, 90);
-            this.lblTotal.Name = "lblTotal";
-            this.lblTotal.Size = new System.Drawing.Size(44, 15);
-            this.lblTotal.TabIndex = 2;
-            this.lblTotal.Text = "Total: $0.00";
+            lblTotal.AutoSize = true;
+            lblTotal.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblTotal.Location = new Point(30, 90);
+            lblTotal.Name = "lblTotal";
+            lblTotal.Size = new Size(71, 15);
+            lblTotal.TabIndex = 2;
+            lblTotal.Text = "Total: $0.00";
             // 
             // btnConfirm
             // 
-            this.btnConfirm.Location = new System.Drawing.Point(30, 140);
-            this.btnConfirm.Name = "btnConfirm";
-            this.btnConfirm.Size = new System.Drawing.Size(120, 30);
-            this.btnConfirm.TabIndex = 3;
-            this.btnConfirm.Text = "Confirm Payment";
-            this.btnConfirm.UseVisualStyleBackColor = true;
-            this.btnConfirm.DialogResult = System.Windows.Forms.DialogResult.OK;
+            btnConfirm.DialogResult = DialogResult.OK;
+            btnConfirm.Location = new Point(30, 140);
+            btnConfirm.Name = "btnConfirm";
+            btnConfirm.Size = new Size(120, 30);
+            btnConfirm.TabIndex = 3;
+            btnConfirm.Text = "Confirm Payment";
+            btnConfirm.UseVisualStyleBackColor = true;
             // 
             // btnCancel
             // 
-            this.btnCancel.Location = new System.Drawing.Point(170, 140);
-            this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(100, 30);
-            this.btnCancel.TabIndex = 4;
-            this.btnCancel.Text = "Cancel";
-            this.btnCancel.UseVisualStyleBackColor = true;
-            this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            btnCancel.DialogResult = DialogResult.Cancel;
+            btnCancel.Location = new Point(170, 140);
+            btnCancel.Name = "btnCancel";
+            btnCancel.Size = new Size(100, 30);
+            btnCancel.TabIndex = 4;
+            btnCancel.Text = "Cancel";
+            btnCancel.UseVisualStyleBackColor = true;
             // 
             // CheckoutDialog
             // 
-            this.AcceptButton = this.btnConfirm;
-            this.CancelButton = this.btnCancel;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(320, 200);
-            this.Controls.Add(this.lblSubtotal);
-            this.Controls.Add(this.lblTax);
-            this.Controls.Add(this.lblTotal);
-            this.Controls.Add(this.btnConfirm);
-            this.Controls.Add(this.btnCancel);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.Name = "CheckoutDialog";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Checkout";
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AcceptButton = btnConfirm;
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            CancelButton = btnCancel;
+            ClientSize = new Size(320, 200);
+            Controls.Add(lblSubtotal);
+            Controls.Add(lblTax);
+            Controls.Add(lblTotal);
+            Controls.Add(btnConfirm);
+            Controls.Add(btnCancel);
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            Name = "CheckoutDialog";
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "Checkout";
+            Load += CheckoutDialog_Load;
+            ResumeLayout(false);
+            PerformLayout();
         }
     }
 }

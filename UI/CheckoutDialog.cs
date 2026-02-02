@@ -21,5 +21,10 @@ namespace RMS.UI
             lblTax.Text = $"Tax: {_tax:C}";
             lblTotal.Text = $"Total: {_total:C}";
         }
+
+        private void CheckoutDialog_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }

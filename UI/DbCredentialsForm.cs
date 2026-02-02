@@ -3,6 +3,9 @@ using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
 using RMS.Utils;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace RMS.UI
 {
@@ -90,6 +93,16 @@ namespace RMS.UI
 
                 // also set active connection in app
                 RMS.Global.SetConnection(csb);
+
+                // If this form was shown without an owner (startup flow), close and return OK so
+                // Program.Main can continue to the login flow. If shown from Settings (owner present),
+                // keep the dialog open so user stays in the app.
+                if (this.Owner == null)
+                {
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
+                }
+
             }
             catch (Exception ex)
             {
@@ -101,15 +114,59 @@ namespace RMS.UI
         {
             try
             {
-                var projectFolder = FindProjectRoot();
-                var path = System.IO.Path.Combine(projectFolder, "db.creds");
-                if (!System.IO.File.Exists(path))
+                // Prefer the local db.creds path determined by Global
+                var path = RMS.Global.GetCredentialFilePath();
+                if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
                 {
-                    lbStatus.Text = "No stored credentials found in project folder.";
+                    lbStatus.Text = $"No stored credentials found at: {path}";
                     return;
                 }
 
-                var connStr = SecureConfig.LoadEncryptedConnectionString(path);
+                var fi = new FileInfo(path);
+                if (fi.Length == 0)
+                {
+                    // Empty file - remove and inform the user instead of showing a cryptic error
+                    try { File.Delete(path); } catch { }
+                    lbStatus.Text = "Credential file was empty and has been removed. Save new credentials.";
+                    return;
+                }
+
+                string connStr = null;
+                try
+                {
+                    // Try AES-GCM secured file first (new format)
+                    connStr = SecureConfig.LoadEncryptedConnectionString(path);
+                }
+                catch (Exception ex)
+                {
+                    // If AES-GCM load fails, try DPAPI legacy unprotect on the same file
+                    try
+                    {
+                        var protectedData = File.ReadAllBytes(path);
+                        // Entropy used by CredentialStore
+                        var entropy = Encoding.UTF8.GetBytes("CSharpAssignmentEntropy_v1");
+                        var plain = ProtectedData.Unprotect(protectedData, entropy, DataProtectionScope.CurrentUser);
+                        var payload = Encoding.UTF8.GetString(plain);
+                        try
+                        {
+                            using var doc = JsonDocument.Parse(payload);
+                            if (doc.RootElement.TryGetProperty("ConnectionString", out var cs))
+                                connStr = cs.GetString();
+                        }
+                        catch
+                        {
+                            // not JSON — maybe raw connection string
+                            connStr = payload;
+                        }
+                    }
+                    catch
+                    {
+                        // both attempts failed
+                        // Provide a clearer status to the user and suggest using the Save action
+                        lbStatus.Text = "Failed to decrypt local credentials. The file may be corrupt or use a different format.";
+                        return;
+                    }
+                }
 
                 // Update Global connection and UI fields
                 RMS.Global.SetConnection(connStr);

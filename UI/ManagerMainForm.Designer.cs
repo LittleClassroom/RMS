@@ -67,23 +67,20 @@ namespace RMS.UI
             lblKpiLowStock = new Label();
             tabMain = new TabControl();
             tabOperations = new TabPage();
+            managerOperationsTablesView = new RMS.Controls.TablesView();
+            tabOrders = new TabPage();
+            managerStaffOrderView = new RMS.Controls.StaffOrderView();
+            tabTables = new TabPage();
+            manageTablesView = new RMS.Controls.ManageTablesView();
             tabMenu = new TabPage();
             tabStaff = new TabPage();
             tabReports = new TabPage();
-            tabOrders = new TabPage();
-            managerStaffOrderView = new RMS.Controls.StaffOrderView();
-            managerOperationsTablesView = new RMS.Controls.TablesView();
-            tabTables = new TabPage();
-            manageTablesView = new RMS.Controls.ManageTablesView();
             statusStrip = new StatusStrip();
             statusLabel = new ToolStripStatusLabel();
             menuStrip.SuspendLayout();
             headerPanel.SuspendLayout();
             tabMain.SuspendLayout();
             tabOperations.SuspendLayout();
-            tabMenu.SuspendLayout();
-            tabStaff.SuspendLayout();
-            tabReports.SuspendLayout();
             tabOrders.SuspendLayout();
             tabTables.SuspendLayout();
             statusStrip.SuspendLayout();
@@ -142,14 +139,14 @@ namespace RMS.UI
             // aboutToolStripMenuItem
             // 
             aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            aboutToolStripMenuItem.Size = new Size(116, 22);
+            aboutToolStripMenuItem.Size = new Size(136, 22);
             aboutToolStripMenuItem.Text = "About...";
             aboutToolStripMenuItem.Click += aboutToolStripMenuItem_Click;
             // 
             // viewLogsToolStripMenuItem
             // 
             viewLogsToolStripMenuItem.Name = "viewLogsToolStripMenuItem";
-            viewLogsToolStripMenuItem.Size = new Size(120, 22);
+            viewLogsToolStripMenuItem.Size = new Size(136, 22);
             viewLogsToolStripMenuItem.Text = "View Logs...";
             viewLogsToolStripMenuItem.Click += viewLogsToolStripMenuItem_Click;
             // 
@@ -188,6 +185,7 @@ namespace RMS.UI
             lblWelcome.Size = new Size(126, 19);
             lblWelcome.TabIndex = 1;
             lblWelcome.Text = "Welcome, Manager";
+            lblWelcome.Click += lblWelcome_Click;
             // 
             // btnLogout
             // 
@@ -282,41 +280,12 @@ namespace RMS.UI
             // 
             // managerOperationsTablesView
             // 
+            managerOperationsTablesView.BackColor = Color.White;
             managerOperationsTablesView.Dock = DockStyle.Fill;
             managerOperationsTablesView.Location = new Point(12, 12);
             managerOperationsTablesView.Name = "managerOperationsTablesView";
             managerOperationsTablesView.Size = new Size(1248, 604);
             managerOperationsTablesView.TabIndex = 0;
-            // 
-            // tabMenu
-            // 
-            tabMenu.BackColor = Color.White;
-            tabMenu.Location = new Point(4, 32);
-            tabMenu.Name = "tabMenu";
-            tabMenu.Padding = new Padding(12);
-            tabMenu.Size = new Size(1272, 628);
-            tabMenu.TabIndex = 3;
-            tabMenu.Text = "🍽️ Menu";
-            // 
-            // tabStaff
-            // 
-            tabStaff.BackColor = Color.White;
-            tabStaff.Location = new Point(4, 32);
-            tabStaff.Name = "tabStaff";
-            tabStaff.Padding = new Padding(12);
-            tabStaff.Size = new Size(1272, 628);
-            tabStaff.TabIndex = 4;
-            tabStaff.Text = "👥 Staff";
-            // 
-            // tabReports
-            // 
-            tabReports.BackColor = Color.White;
-            tabReports.Location = new Point(4, 32);
-            tabReports.Name = "tabReports";
-            tabReports.Padding = new Padding(12);
-            tabReports.Size = new Size(1272, 628);
-            tabReports.TabIndex = 5;
-            tabReports.Text = "📈 Reports";
             // 
             // tabOrders
             // 
@@ -325,16 +294,16 @@ namespace RMS.UI
             tabOrders.Location = new Point(4, 32);
             tabOrders.Name = "tabOrders";
             tabOrders.Padding = new Padding(12);
-            tabOrders.Size = new Size(1272, 628);
+            tabOrders.Size = new Size(192, 64);
             tabOrders.TabIndex = 6;
-            tabOrders.Text = "\uD83D\uDED2 Orders";
+            tabOrders.Text = "\U0001f6d2 Orders";
             // 
             // managerStaffOrderView
             // 
             managerStaffOrderView.Dock = DockStyle.Fill;
             managerStaffOrderView.Location = new Point(12, 12);
             managerStaffOrderView.Name = "managerStaffOrderView";
-            managerStaffOrderView.Size = new Size(1248, 604);
+            managerStaffOrderView.Size = new Size(168, 40);
             managerStaffOrderView.TabIndex = 0;
             // 
             // tabTables
@@ -344,7 +313,7 @@ namespace RMS.UI
             tabTables.Location = new Point(4, 32);
             tabTables.Name = "tabTables";
             tabTables.Padding = new Padding(12);
-            tabTables.Size = new Size(1272, 628);
+            tabTables.Size = new Size(192, 64);
             tabTables.TabIndex = 7;
             tabTables.Text = "📅 Tables";
             // 
@@ -353,8 +322,38 @@ namespace RMS.UI
             manageTablesView.Dock = DockStyle.Fill;
             manageTablesView.Location = new Point(12, 12);
             manageTablesView.Name = "manageTablesView";
-            manageTablesView.Size = new Size(1248, 604);
+            manageTablesView.Size = new Size(168, 40);
             manageTablesView.TabIndex = 0;
+            // 
+            // tabMenu
+            // 
+            tabMenu.BackColor = Color.White;
+            tabMenu.Location = new Point(4, 32);
+            tabMenu.Name = "tabMenu";
+            tabMenu.Padding = new Padding(12);
+            tabMenu.Size = new Size(192, 64);
+            tabMenu.TabIndex = 3;
+            tabMenu.Text = "🍽️ Menu";
+            // 
+            // tabStaff
+            // 
+            tabStaff.BackColor = Color.White;
+            tabStaff.Location = new Point(4, 32);
+            tabStaff.Name = "tabStaff";
+            tabStaff.Padding = new Padding(12);
+            tabStaff.Size = new Size(192, 64);
+            tabStaff.TabIndex = 4;
+            tabStaff.Text = "👥 Staff";
+            // 
+            // tabReports
+            // 
+            tabReports.BackColor = Color.White;
+            tabReports.Location = new Point(4, 32);
+            tabReports.Name = "tabReports";
+            tabReports.Padding = new Padding(12);
+            tabReports.Size = new Size(192, 64);
+            tabReports.TabIndex = 5;
+            tabReports.Text = "📈 Reports";
             // 
             // statusStrip
             // 
@@ -392,9 +391,6 @@ namespace RMS.UI
             headerPanel.PerformLayout();
             tabMain.ResumeLayout(false);
             tabOperations.ResumeLayout(false);
-            tabMenu.ResumeLayout(false);
-            tabStaff.ResumeLayout(false);
-            tabReports.ResumeLayout(false);
             tabOrders.ResumeLayout(false);
             tabTables.ResumeLayout(false);
             statusStrip.ResumeLayout(false);

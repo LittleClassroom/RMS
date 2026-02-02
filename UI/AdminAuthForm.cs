@@ -16,8 +16,32 @@ namespace RMS.UI
 
         public AdminAuthForm()
         {
-            InitializeComponent();
-        }
+tbUser = new TextBox { Left = 120, Top = 12, Width = 220 };
+            tbPassword = new TextBox { Left = 120, Top = 44, Width = 220, UseSystemPasswordChar = true };
+            btnOk = new Button { Text = "OK", Left = 120, Top = 96, Width = 100 };
+            btnCancel = new Button { Text = "Cancel", Left = 240, Top = 96, Width = 100 };
+            chkShow = new CheckBox { Text = "Show password", Left = 120, Top = 72, AutoSize = true };
+            lblUser = new Label { Text = "Admin username:", Left = 12, Top = 15, AutoSize = true };
+            lblPass = new Label { Text = "Password:", Left = 12, Top = 47, AutoSize = true };
+
+            btnOk.Click += BtnOk_Click;
+            btnCancel.Click += (s, e) => { DialogResult = DialogResult.Cancel; Close(); };
+            chkShow.CheckedChanged += (s, e) => tbPassword.UseSystemPasswordChar = !chkShow.Checked;
+
+            AcceptButton = btnOk;
+            CancelButton = btnCancel;
+
+            this.ClientSize = new System.Drawing.Size(360, 136);
+            this.Controls.Add(tbUser);
+            this.Controls.Add(tbPassword);
+            this.Controls.Add(btnOk);
+            this.Controls.Add(btnCancel);
+            this.Controls.Add(chkShow);
+            this.Controls.Add(lblUser);
+            this.Controls.Add(lblPass);
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.Text = "Admin Authentication";        }
 
         private void InitializeComponent()
         {
