@@ -557,9 +557,26 @@ namespace RMS.Controls
 
         private void CloseHostedPanelIfNeeded()
         {
-            if (Parent is Control parent && parent.Controls.Contains(this))
+            try
             {
-                parent.Controls.Remove(this);
+                var frm = FindForm();
+                // If hosted inside a modal dialog (ShowDialog) or a transient form, close that form
+                // but do not close main application windows (ManagerMainForm/StaffMainForm).
+                if (frm != null && !(frm is UI.ManagerMainForm) && !(frm is UI.StaffMainForm))
+                {
+                    try { frm.DialogResult = DialogResult.OK; } catch { }
+                    try { frm.Close(); return; } catch { }
+                }
+
+                // Otherwise, if hosted inside another container control, remove this control
+                if (Parent is Control parent && parent.Controls.Contains(this))
+                {
+                    parent.Controls.Remove(this);
+                }
+            }
+            catch
+            {
+                // swallow exceptions to avoid breaking UI flow
             }
         }
 

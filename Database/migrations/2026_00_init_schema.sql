@@ -189,47 +189,45 @@ GO
 CREATE INDEX IX_Payments_SessionId ON dbo.Payments(SessionId);
 GO
 
--- allocation table for splitting/allocating payments across orders or sessions
-IF OBJECT_ID(N'dbo.PaymentAllocations', N'U') IS NOT NULL DROP TABLE dbo.PaymentAllocations;
-CREATE TABLE dbo.PaymentAllocations
+-- ----------------------
+-- InventoryCategories
+-- ----------------------
+IF OBJECT_ID(N'dbo.InventoryCategories', N'U') IS NOT NULL DROP TABLE dbo.InventoryCategories;
+CREATE TABLE dbo.InventoryCategories
 (
-    AllocationId INT IDENTITY(1,1) PRIMARY KEY,
-    PaymentId INT NOT NULL,
-    OrderId INT NULL,
-    SessionId INT NULL,
-    Amount DECIMAL(10,2) NOT NULL,
-    CONSTRAINT FK_PaymentAllocations_Payment FOREIGN KEY (PaymentId) REFERENCES dbo.Payments(PaymentId),
-    CONSTRAINT FK_PaymentAllocations_Order FOREIGN KEY (OrderId) REFERENCES dbo.Orders(OrderId),
-    CONSTRAINT FK_PaymentAllocations_Session FOREIGN KEY (SessionId) REFERENCES dbo.TableSessions(SessionId)
+    CategoryId INT IDENTITY(1,1) PRIMARY KEY,
+    Name NVARCHAR(120) NOT NULL
 );
 GO
 
 -- ----------------------
--- Ingredients
+-- InventorySubcategories
 -- ----------------------
-IF OBJECT_ID(N'dbo.Ingredients', N'U') IS NOT NULL DROP TABLE dbo.Ingredients;
-CREATE TABLE dbo.Ingredients
+IF OBJECT_ID(N'dbo.InventorySubcategories', N'U') IS NOT NULL DROP TABLE dbo.InventorySubcategories;
+CREATE TABLE dbo.InventorySubcategories
 (
-    IngredientId INT IDENTITY(1,1) PRIMARY KEY,
+    SubcategoryId INT IDENTITY(1,1) PRIMARY KEY,
+    CategoryId INT NOT NULL,
+    Name NVARCHAR(120) NOT NULL,
+    CONSTRAINT FK_InventorySubcategories_Category FOREIGN KEY (CategoryId) REFERENCES dbo.InventoryCategories(CategoryId)
+);
+GO
+
+-- ----------------------
+-- InventoryItems
+-- ----------------------
+IF OBJECT_ID(N'dbo.InventoryItems', N'U') IS NOT NULL DROP TABLE dbo.InventoryItems;
+CREATE TABLE dbo.InventoryItems
+(
+    InventoryItemId INT IDENTITY(1,1) PRIMARY KEY,
+    CategoryId INT NULL,
+    SubcategoryId INT NULL,
     Name NVARCHAR(120) NOT NULL,
     Unit NVARCHAR(20) NULL,
     CurrentStock DECIMAL(12,3) NOT NULL DEFAULT(0),
-    ReorderLevel DECIMAL(12,3) NOT NULL DEFAULT(0)
-);
-GO
-
--- ----------------------
--- MenuItemIngredients
--- ----------------------
-IF OBJECT_ID(N'dbo.MenuItemIngredients', N'U') IS NOT NULL DROP TABLE dbo.MenuItemIngredients;
-CREATE TABLE dbo.MenuItemIngredients
-(
-    MenuItemId INT NOT NULL,
-    IngredientId INT NOT NULL,
-    Quantity DECIMAL(10,3) NOT NULL,
-    CONSTRAINT PK_MenuItemIngredients PRIMARY KEY (MenuItemId, IngredientId),
-    CONSTRAINT FK_MII_MenuItem FOREIGN KEY (MenuItemId) REFERENCES dbo.MenuItems(MenuItemId),
-    CONSTRAINT FK_MII_Ingredient FOREIGN KEY (IngredientId) REFERENCES dbo.Ingredients(IngredientId)
+    ReorderLevel DECIMAL(12,3) NOT NULL DEFAULT(0),
+    CONSTRAINT FK_InventoryItems_Category FOREIGN KEY (CategoryId) REFERENCES dbo.InventoryCategories(CategoryId),
+    CONSTRAINT FK_InventoryItems_Subcategory FOREIGN KEY (SubcategoryId) REFERENCES dbo.InventorySubcategories(SubcategoryId)
 );
 GO
 
@@ -240,7 +238,7 @@ IF OBJECT_ID(N'dbo.InventoryTransactions', N'U') IS NOT NULL DROP TABLE dbo.Inve
 CREATE TABLE dbo.InventoryTransactions
 (
     TransactionId INT IDENTITY(1,1) PRIMARY KEY,
-    IngredientId INT NOT NULL,
+    InventoryItemId INT NOT NULL,
     Type TINYINT NOT NULL, -- 0=Adjustment,1=Usage,2=Receipt
     Quantity DECIMAL(12,3) NOT NULL,
     Reference NVARCHAR(80) NULL,
@@ -248,70 +246,8 @@ CREATE TABLE dbo.InventoryTransactions
     SourceId INT NULL,
     CreatedAtUtc DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     CreatedByUserId INT NULL,
-    CONSTRAINT FK_InventoryTransactions_Ingredient FOREIGN KEY (IngredientId) REFERENCES dbo.Ingredients(IngredientId),
+    CONSTRAINT FK_InventoryTransactions_Item FOREIGN KEY (InventoryItemId) REFERENCES dbo.InventoryItems(InventoryItemId),
     CONSTRAINT FK_InventoryTransactions_User FOREIGN KEY (CreatedByUserId) REFERENCES dbo.Users(UserId)
-);
-GO
-
--- ----------------------
--- Suppliers
--- ----------------------
-IF OBJECT_ID(N'dbo.Suppliers', N'U') IS NOT NULL DROP TABLE dbo.Suppliers;
-CREATE TABLE dbo.Suppliers
-(
-    SupplierId INT IDENTITY(1,1) PRIMARY KEY,
-    Name NVARCHAR(150) NOT NULL,
-    Phone NVARCHAR(30) NULL,
-    Email NVARCHAR(120) NULL
-);
-GO
-
--- ----------------------
--- InventoryReceipts
--- ----------------------
-IF OBJECT_ID(N'dbo.InventoryReceipts', N'U') IS NOT NULL DROP TABLE dbo.InventoryReceipts;
-CREATE TABLE dbo.InventoryReceipts
-(
-    ReceiptId INT IDENTITY(1,1) PRIMARY KEY,
-    SupplierId INT NULL,
-    ReceivedAtUtc DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    ReceivedByUserId INT NULL,
-    Notes NVARCHAR(200) NULL,
-    CONSTRAINT FK_InventoryReceipts_Supplier FOREIGN KEY (SupplierId) REFERENCES dbo.Suppliers(SupplierId),
-    CONSTRAINT FK_InventoryReceipts_User FOREIGN KEY (ReceivedByUserId) REFERENCES dbo.Users(UserId)
-);
-GO
-
--- ----------------------
--- InventoryReceiptLines
--- ----------------------
-IF OBJECT_ID(N'dbo.InventoryReceiptLines', N'U') IS NOT NULL DROP TABLE dbo.InventoryReceiptLines;
-CREATE TABLE dbo.InventoryReceiptLines
-(
-    ReceiptLineId INT IDENTITY(1,1) PRIMARY KEY,
-    ReceiptId INT NOT NULL,
-    IngredientId INT NOT NULL,
-    Quantity DECIMAL(12,3) NOT NULL,
-    UnitCost DECIMAL(10,2) NOT NULL,
-    CONSTRAINT FK_IRL_Receipt FOREIGN KEY (ReceiptId) REFERENCES dbo.InventoryReceipts(ReceiptId) ON DELETE CASCADE,
-    CONSTRAINT FK_IRL_Ingredient FOREIGN KEY (IngredientId) REFERENCES dbo.Ingredients(IngredientId)
-);
-GO
-
--- ----------------------
--- AuditLog
--- ----------------------
-IF OBJECT_ID(N'dbo.AuditLog', N'U') IS NOT NULL DROP TABLE dbo.AuditLog;
-CREATE TABLE dbo.AuditLog
-(
-    AuditId BIGINT IDENTITY(1,1) PRIMARY KEY,
-    UserId INT NULL,
-    Action NVARCHAR(50) NULL,
-    Entity NVARCHAR(50) NULL,
-    EntityId INT NULL,
-    Payload NVARCHAR(MAX) NULL,
-    CreatedAtUtc DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT FK_AuditLog_User FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId)
 );
 GO
 
@@ -333,7 +269,7 @@ PRINT 'Seeding sample data...';
 
 -- sample users
 INSERT INTO dbo.Users (Username, PasswordHash, DisplayName, Role)
-VALUES ('manager', NULL, 'Admin Manager', 0), ('chef', NULL, 'Chef Kim', 1), ('server', NULL, 'John Server', 2);
+VALUES ('manager', '$2y$12$0T37iQ499Tv.SWXfYN5yGubpbj88Cju9xCe.pNLI.e93DgCexNZMO', 'Admin Manager', 0), ('server', '$2y$12$0T37iQ499Tv.SWXfYN5yGubpbj88Cju9xCe.pNLI.e93DgCexNZMO', 'John Server', 2);
 
 -- sample tables
 INSERT INTO dbo.Tables (Code, Location, Capacity, Status)
@@ -361,3 +297,27 @@ VALUES
 GO
 
 PRINT 'RMS DB schema created and seeded.';
+
+-- seed inventory categories and sample ingredients
+INSERT INTO dbo.InventoryCategories (Name) VALUES ('Produce'), ('Meat & Poultry'), ('Pantry');
+GO
+
+INSERT INTO dbo.InventorySubcategories (CategoryId, Name) VALUES (1, 'Vegetables'), (1, 'Fruits'), (2, 'Poultry'), (2, 'Beef'), (3, 'Dry Goods');
+GO
+
+INSERT INTO dbo.InventoryItems (CategoryId, SubcategoryId, Name, Unit, CurrentStock, ReorderLevel)
+VALUES
+(1, 1, 'Tomatoes', 'kg', 2.5, 5.0),
+(2, 3, 'Chicken Breast', 'kg', 1.2, 3.0),
+(3, 5, 'Olive Oil', 'L', 0.5, 2.0);
+GO
+
+-- ----------------------
+-- Seed inventory transactions (kept) -- adjust SourceId to NULL since receipts/suppliers removed
+-- ----------------------
+INSERT INTO dbo.InventoryTransactions (InventoryItemId, Type, Quantity, Reference, SourceType, SourceId, CreatedAtUtc, CreatedByUserId)
+VALUES
+(1, 2, 5.0, 'Initial receipt', 'Receipt', NULL, SYSUTCDATETIME(), NULL),
+(2, 2, 10.0, 'Initial receipt', 'Receipt', NULL, SYSUTCDATETIME(), NULL),
+(3, 2, 2.0, 'Initial receipt', 'Receipt', NULL, SYSUTCDATETIME(), NULL);
+GO

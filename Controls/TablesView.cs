@@ -7,6 +7,8 @@ using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
 using RMS.Models;
 using System.Reflection;
+using RMS.Data.SqlServer;
+using RMS.UI;
 
 namespace RMS.Controls
 {
@@ -18,6 +20,8 @@ namespace RMS.Controls
         private System.Windows.Forms.Timer _refreshTimer;
         private int _refreshSeconds = 3; // countdown interval (seconds)
         private bool _autoRefreshEnabled = false;
+        private ContextMenuStrip? _tableContextMenu;
+        private Button? _lastTableButton;
 
         public TablesView()
         {
@@ -51,6 +55,19 @@ namespace RMS.Controls
                 _refreshTimer.Interval = 1000; // 1s tick
                 _refreshTimer.Tick += (s, e) => OnRefreshTimerTick();
                 _refreshTimer.Start();
+            }
+            catch { }
+
+            // create context menu for table actions (right-click)
+            try
+            {
+                _tableContextMenu = new ContextMenuStrip();
+                _tableContextMenu.Items.Add("Set Available").Tag = TableStatus.Available;
+                _tableContextMenu.Items.Add("Set Reserved").Tag = TableStatus.Reserved;
+                _tableContextMenu.Items.Add("Set Occupied").Tag = TableStatus.Occupied;
+                _tableContextMenu.Items.Add("Set Needs Cleaning").Tag = TableStatus.NeedsCleaning;
+                _tableContextMenu.Items.Add("Set Out Of Service").Tag = TableStatus.OutOfService;
+                _tableContextMenu.ItemClicked += TableContextMenu_ItemClicked;
             }
             catch { }
         }
@@ -176,6 +193,15 @@ namespace RMS.Controls
 
             btn.FlatAppearance.BorderSize = 0;
             btn.Click += TableButton_Click;
+            // show context menu on right-click
+            btn.MouseUp += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Right && _tableContextMenu != null)
+                {
+                    _lastTableButton = btn;
+                    _tableContextMenu.Show(btn, e.Location);
+                }
+            };
 
             return btn;
         }
@@ -429,6 +455,64 @@ namespace RMS.Controls
             catch { }
             // reset countdown when enabling
             if (_autoRefreshEnabled) _refreshSeconds = 3;
+        }
+
+        private void TableContextMenu_ItemClicked(object? sender, ToolStripItemClickedEventArgs e)
+        {
+            try
+            {
+                if (_lastTableButton == null) return;
+                if (_lastTableButton.Tag is not TableInfo table) return;
+                if (e.ClickedItem?.Tag is not TableStatus status) return;
+
+                var conn = Global.CurrentConnectionString;
+                if (string.IsNullOrWhiteSpace(conn))
+                {
+                    MessageBox.Show(this, "Database connection required to change table status.", "Connection Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var repo = new RmsRepository(conn);
+
+                // If table currently Occupied and user tries to change to a non-Occupied status,
+                // require checkout first (ensure order is paid/closed).
+                if (table.Status == TableStatus.Occupied && status != TableStatus.Occupied)
+                {
+                    var open = repo.GetOpenOrderForTable(table.TableId);
+                    if (open != null)
+                    {
+                        var confirm = MessageBox.Show(this, $"Table {table.Code} has an open order (#{open.OrderId}). Checkout before changing status?", "Checkout Required", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        if (confirm != DialogResult.Yes)
+                        {
+                            return; // user declined
+                        }
+
+                        // open checkout dialog; it records payment and marks order paid
+                        using var dlg = new CheckoutDialog(open.OrderId, open.Subtotal, open.Tax);
+                        if (dlg.ShowDialog(FindForm()) != DialogResult.OK)
+                        {
+                            // user cancelled checkout
+                            return;
+                        }
+                    }
+                }
+
+                // perform the status update
+                try
+                {
+                    repo.UpdateTableStatus(table.TableId, status);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, "Failed to update table status: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // update UI state
+                table.Status = status;
+                UpdateButtonFromTable(_lastTableButton, table);
+            }
+            catch { }
         }
     }
 }

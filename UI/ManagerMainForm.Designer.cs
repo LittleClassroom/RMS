@@ -23,6 +23,7 @@ namespace RMS.UI
         private System.Windows.Forms.TabPage tabStaff;
         private System.Windows.Forms.TabPage tabReports;
         private System.Windows.Forms.TabPage tabOrders;
+        private System.Windows.Forms.TabPage tabInventory;
         private RMS.Controls.TablesView managerOperationsTablesView;
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripStatusLabel statusLabel;
@@ -34,6 +35,7 @@ namespace RMS.UI
         private System.Windows.Forms.TabPage tabTables;
         private RMS.Controls.StaffOrderView managerStaffOrderView;
         private RMS.Controls.ManageTablesView manageTablesView;
+        private RMS.Controls.InventoryView managerInventoryView;
 
         protected override void Dispose(bool disposing)
         {
@@ -75,6 +77,8 @@ namespace RMS.UI
             tabMenu = new TabPage();
             tabStaff = new TabPage();
             tabReports = new TabPage();
+            tabInventory = new TabPage();
+            managerInventoryView = new RMS.Controls.InventoryView();
             statusStrip = new StatusStrip();
             statusLabel = new ToolStripStatusLabel();
             menuStrip.SuspendLayout();
@@ -83,6 +87,7 @@ namespace RMS.UI
             tabOperations.SuspendLayout();
             tabOrders.SuspendLayout();
             tabTables.SuspendLayout();
+            tabInventory.SuspendLayout();
             statusStrip.SuspendLayout();
             SuspendLayout();
             // 
@@ -252,6 +257,7 @@ namespace RMS.UI
             // tabMain
             // 
             tabMain.Controls.Add(tabOperations);
+            tabMain.Controls.Add(tabInventory);
             tabMain.Controls.Add(tabOrders);
             tabMain.Controls.Add(tabTables);
             tabMain.Controls.Add(tabMenu);
@@ -286,6 +292,25 @@ namespace RMS.UI
             managerOperationsTablesView.Name = "managerOperationsTablesView";
             managerOperationsTablesView.Size = new Size(1248, 604);
             managerOperationsTablesView.TabIndex = 0;
+            // 
+            // tabInventory
+            // 
+            tabInventory.BackColor = Color.White;
+            tabInventory.Controls.Add(managerInventoryView);
+            tabInventory.Location = new Point(4, 32);
+            tabInventory.Name = "tabInventory";
+            tabInventory.Padding = new Padding(12);
+            tabInventory.Size = new Size(1272, 628);
+            tabInventory.TabIndex = 2;
+            tabInventory.Text = "📦 Inventory";
+            // 
+            // managerInventoryView
+            // 
+            managerInventoryView.Dock = DockStyle.Fill;
+            managerInventoryView.Location = new Point(12, 12);
+            managerInventoryView.Name = "managerInventoryView";
+            managerInventoryView.Size = new Size(1248, 604);
+            managerInventoryView.TabIndex = 0;
             // 
             // tabOrders
             // 
@@ -393,6 +418,7 @@ namespace RMS.UI
             tabOperations.ResumeLayout(false);
             tabOrders.ResumeLayout(false);
             tabTables.ResumeLayout(false);
+            tabInventory.ResumeLayout(false);
             statusStrip.ResumeLayout(false);
             statusStrip.PerformLayout();
             ResumeLayout(false);

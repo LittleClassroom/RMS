@@ -39,6 +39,12 @@ namespace RMS.UI
                 managerOperationsTablesView?.RefreshTables();
                 return;
             }
+            if (page == tabInventory)
+            {
+                // ensure inventory view uses the shared repository
+                try { managerInventoryView?.ConfigureRepository(_repository); } catch { }
+                return;
+            }
             if (page == tabOrders)
             {
                 managerStaffOrderView?.Refresh();

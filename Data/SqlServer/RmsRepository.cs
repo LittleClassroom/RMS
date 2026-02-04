@@ -177,7 +177,7 @@ FROM dbo.TableSessions
 WHERE CAST(StartedAtUtc AS date) = CAST(SYSUTCDATETIME() AS date);
 
 SELECT COUNT(*) AS LowStock
-FROM dbo.Ingredients
+FROM dbo.InventoryItems
 WHERE CurrentStock <= ReorderLevel;
 
 SELECT TOP (@count)
@@ -456,6 +456,28 @@ ORDER BY CASE WHEN o.IsPaid = 1 THEN 1 ELSE 0 END, o.CreatedAtUtc DESC", cn);
             cmd.ExecuteNonQuery();
         }
 
+        // Records a payment against an order or session and returns the inserted PaymentId
+        public int CreatePayment(int? orderId, int? sessionId, decimal amount, byte paymentType = 0, int? processedByUserId = null, string? reference = null, bool isRefund = false, int? relatedPaymentId = null)
+        {
+            using var cn = new SqlConnection(_conn);
+            using var cmd = new SqlCommand(@"INSERT INTO dbo.Payments (OrderId, SessionId, Amount, PaymentType, PaidAtUtc, ProcessedByUserId, Reference, IsRefund, RelatedPaymentId)
+                                            OUTPUT INSERTED.PaymentId
+                                            VALUES (@orderId, @sessionId, @amount, @ptype, SYSUTCDATETIME(), @procBy, @ref, @isRefund, @related)", cn);
+
+            cmd.Parameters.AddWithValue("@orderId", (object?)orderId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@sessionId", (object?)sessionId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@amount", amount);
+            cmd.Parameters.AddWithValue("@ptype", paymentType);
+            cmd.Parameters.AddWithValue("@procBy", (object?)processedByUserId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@ref", (object?)reference ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@isRefund", isRefund);
+            cmd.Parameters.AddWithValue("@related", (object?)relatedPaymentId ?? DBNull.Value);
+
+            cn.Open();
+            var result = cmd.ExecuteScalar();
+            return Convert.ToInt32(result);
+        }
+
         public IReadOnlyList<OrderLineDetail> GetOrderLines(int orderId)
         {
             var list = new List<OrderLineDetail>();
@@ -536,6 +558,174 @@ WHERE TableId = @id", cn);
             cmd.Parameters.AddWithValue("@id", tableId);
             cn.Open();
             cmd.ExecuteNonQuery();
+        }
+
+        public IReadOnlyList<InventoryCategory> GetInventoryCategories()
+        {
+            var list = new List<InventoryCategory>();
+            using var cn = new SqlConnection(_conn);
+            using var cmd = new SqlCommand("SELECT CategoryId, Name FROM dbo.InventoryCategories ORDER BY Name", cn);
+            cn.Open();
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                list.Add(new InventoryCategory
+                {
+                    CategoryId = rdr.GetInt32(0),
+                    Name = rdr.GetString(1)
+                });
+            }
+            return list;
+        }
+
+        public IReadOnlyList<InventorySubcategory> GetInventorySubcategories(int? categoryId = null)
+        {
+            var list = new List<InventorySubcategory>();
+            using var cn = new SqlConnection(_conn);
+            using var cmd = new SqlCommand(@"SELECT SubcategoryId, CategoryId, Name
+FROM dbo.InventorySubcategories
+WHERE (@cat IS NULL OR CategoryId = @cat)
+ORDER BY Name", cn);
+            var pCat = cmd.Parameters.Add("@cat", SqlDbType.Int);
+            pCat.Value = categoryId.HasValue ? categoryId.Value : DBNull.Value;
+            cn.Open();
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                list.Add(new InventorySubcategory
+                {
+                    SubcategoryId = rdr.GetInt32(0),
+                    CategoryId = rdr.GetInt32(1),
+                    Name = rdr.GetString(2)
+                });
+            }
+            return list;
+        }
+
+        public IReadOnlyList<InventoryItem> GetInventoryItems(int? categoryId = null, int? subcategoryId = null)
+        {
+            var list = new List<InventoryItem>();
+            using var cn = new SqlConnection(_conn);
+            using var cmd = new SqlCommand(@"SELECT i.InventoryItemId,
+       i.CategoryId,
+       c.Name AS CategoryName,
+       i.SubcategoryId,
+       sc.Name AS SubcategoryName,
+       i.Name,
+       i.Unit,
+       i.CurrentStock,
+       i.ReorderLevel
+FROM dbo.InventoryItems i
+LEFT JOIN dbo.InventoryCategories c ON c.CategoryId = i.CategoryId
+LEFT JOIN dbo.InventorySubcategories sc ON sc.SubcategoryId = i.SubcategoryId
+WHERE (@cat IS NULL OR i.CategoryId = @cat)
+  AND (@sub IS NULL OR i.SubcategoryId = @sub)
+ORDER BY i.Name", cn);
+            cmd.Parameters.Add("@cat", SqlDbType.Int).Value = categoryId.HasValue ? categoryId.Value : DBNull.Value;
+            cmd.Parameters.Add("@sub", SqlDbType.Int).Value = subcategoryId.HasValue ? subcategoryId.Value : DBNull.Value;
+            cn.Open();
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                list.Add(new InventoryItem
+                {
+                    InventoryItemId = rdr.GetInt32(0),
+                    CategoryId = rdr.IsDBNull(1) ? null : rdr.GetInt32(1),
+                    CategoryName = rdr.IsDBNull(2) ? null : rdr.GetString(2),
+                    SubcategoryId = rdr.IsDBNull(3) ? null : rdr.GetInt32(3),
+                    SubcategoryName = rdr.IsDBNull(4) ? null : rdr.GetString(4),
+                    Name = rdr.IsDBNull(5) ? string.Empty : rdr.GetString(5),
+                    Unit = rdr.IsDBNull(6) ? null : rdr.GetString(6),
+                    CurrentStock = rdr.IsDBNull(7) ? 0m : rdr.GetDecimal(7),
+                    ReorderLevel = rdr.IsDBNull(8) ? 0m : rdr.GetDecimal(8)
+                });
+            }
+            return list;
+        }
+
+        public int InsertInventoryItem(InventoryItem item)
+        {
+            using var cn = new SqlConnection(_conn);
+            using var cmd = new SqlCommand(@"INSERT INTO dbo.InventoryItems (CategoryId, SubcategoryId, Name, Unit, CurrentStock, ReorderLevel)
+OUTPUT INSERTED.InventoryItemId
+VALUES (@cat, @sub, @name, @unit, @stock, @reorder)", cn);
+            cmd.Parameters.AddWithValue("@cat", (object?)item.CategoryId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@sub", (object?)item.SubcategoryId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@name", item.Name);
+            cmd.Parameters.AddWithValue("@unit", (object?)item.Unit ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@stock", item.CurrentStock);
+            cmd.Parameters.AddWithValue("@reorder", item.ReorderLevel);
+            cn.Open();
+            var result = cmd.ExecuteScalar();
+            return Convert.ToInt32(result);
+        }
+
+        public IReadOnlyList<InventoryTransaction> GetInventoryTransactions(int? inventoryItemId = null)
+        {
+            var list = new List<InventoryTransaction>();
+            using var cn = new SqlConnection(_conn);
+            using var cmd = new SqlCommand(@"SELECT TransactionId, InventoryItemId, Type, Quantity, Reference, SourceType, SourceId, CreatedAtUtc, CreatedByUserId
+FROM dbo.InventoryTransactions
+WHERE (@item IS NULL OR InventoryItemId = @item)
+ORDER BY CreatedAtUtc DESC", cn);
+            var p = cmd.Parameters.Add("@item", SqlDbType.Int);
+            p.Value = inventoryItemId.HasValue ? inventoryItemId.Value : DBNull.Value;
+            cn.Open();
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                list.Add(new InventoryTransaction
+                {
+                    TransactionId = rdr.GetInt32(0),
+                    InventoryItemId = rdr.GetInt32(1),
+                    Type = rdr.GetByte(2),
+                    Quantity = rdr.GetDecimal(3),
+                    Reference = rdr.IsDBNull(4) ? null : rdr.GetString(4),
+                    SourceType = rdr.IsDBNull(5) ? null : rdr.GetString(5),
+                    SourceId = rdr.IsDBNull(6) ? null : (int?)rdr.GetInt32(6),
+                    CreatedAtUtc = rdr.IsDBNull(7) ? DateTime.UtcNow : rdr.GetDateTime(7),
+                    CreatedByUserId = rdr.IsDBNull(8) ? null : (int?)rdr.GetInt32(8)
+                });
+            }
+            return list;
+        }
+
+        public int CreateInventoryTransaction(int inventoryItemId, byte type, decimal quantity, string? reference = null, string? sourceType = null, int? sourceId = null, int? createdByUserId = null)
+        {
+            using var cn = new SqlConnection(_conn);
+            cn.Open();
+            using var tx = cn.BeginTransaction();
+            try
+            {
+                using var cmd = new SqlCommand(@"INSERT INTO dbo.InventoryTransactions (InventoryItemId, Type, Quantity, Reference, SourceType, SourceId, CreatedAtUtc, CreatedByUserId)
+OUTPUT INSERTED.TransactionId
+VALUES (@item, @type, @qty, @ref, @stype, @sid, SYSUTCDATETIME(), @createdBy)", cn, tx);
+                cmd.Parameters.AddWithValue("@item", inventoryItemId);
+                cmd.Parameters.AddWithValue("@type", type);
+                cmd.Parameters.AddWithValue("@qty", quantity);
+                cmd.Parameters.AddWithValue("@ref", (object?)reference ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@stype", (object?)sourceType ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@sid", (object?)sourceId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@createdBy", (object?)createdByUserId ?? DBNull.Value);
+
+                var idObj = cmd.ExecuteScalar();
+                var txId = Convert.ToInt32(idObj);
+
+                decimal delta = type == 1 ? -quantity : quantity;
+
+                using var upd = new SqlCommand("UPDATE dbo.InventoryItems SET CurrentStock = ISNULL(CurrentStock, 0) + @delta WHERE InventoryItemId = @item", cn, tx);
+                upd.Parameters.AddWithValue("@delta", delta);
+                upd.Parameters.AddWithValue("@item", inventoryItemId);
+                upd.ExecuteNonQuery();
+
+                tx.Commit();
+                return txId;
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
+            }
         }
     }
 }

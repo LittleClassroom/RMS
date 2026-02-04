@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows.Forms;
 using RMS.Models;
 using RMS.Controls;
+using RMS.Data.SqlServer;
 
 namespace RMS.UI
 {
@@ -68,7 +69,9 @@ namespace RMS.UI
         private void ShowTables()
         {
             // Display the tables view
-            ShowView(new TablesView());
+            var tv = new TablesView();
+            ShowView(tv);
+            try { tv.RefreshTables(); } catch { }
             sidebar.SelectButton("tables");
         }
 
@@ -89,7 +92,19 @@ namespace RMS.UI
         private void ShowInventory()
         {
             // Display the inventory view
-            ShowView(new InventoryView());
+            var inv = new InventoryView();
+            // configure repository if connection available so inventory history and transactions load
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(RMS.Global.CurrentConnectionString))
+                {
+                    var repo = new RmsRepository(RMS.Global.CurrentConnectionString);
+                    inv.ConfigureRepository(repo);
+                }
+            }
+            catch { }
+
+            ShowView(inv);
             sidebar.SelectButton("inventory");
         }
 
