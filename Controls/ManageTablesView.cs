@@ -72,7 +72,14 @@ namespace RMS.Controls
                 var data = await Task.Run(() => repo.GetTables().OrderBy(t => t.Code).ToList());
                 _allTables.Clear();
                 _allTables.AddRange(data);
-                ApplyFilter();
+                // Ensure status filter is set to "All Statuses" and show all rows on initial load
+                try { if (cbStatusFilter.Items.Count > 0) cbStatusFilter.SelectedIndex = 0; } catch { }
+                // Bind all tables directly (no filtering) so the grid shows everything on load
+                var list = new BindingList<TableInfo>(_allTables);
+                _binding.DataSource = list;
+                try { dgvTables.DataSource = null; dgvTables.DataSource = _binding; dgvTables.ClearSelection(); if (dgvTables.Rows.Count > 0) dgvTables.CurrentCell = null; } catch { }
+                // fallback manual populate if necessary
+                try { if (dgvTables.Rows.Count == 0 && _allTables.Count > 0) { dgvTables.Rows.Clear(); foreach (var t in _allTables) { var idx = dgvTables.Rows.Add(t.Code, t.Location, t.Capacity, t.Status.ToString(), t.Notes ?? string.Empty); dgvTables.Rows[idx].Tag = t; } } } catch { }
                 ShowStatus(data.Count == 1 ? "1 table" : $"{data.Count} tables");
             }
             catch (Exception ex)
@@ -83,6 +90,8 @@ namespace RMS.Controls
             {
                 ToggleInputs(true);
                 _isLoading = false;
+                // Ensure UI is refreshed with the loaded data after loading completes
+                try { ApplyFilter(); } catch { }
             }
         }
 
@@ -239,8 +248,35 @@ namespace RMS.Controls
             }
 
             var filtered = query.ToList();
-            _binding.DataSource = new BindingList<TableInfo>(filtered);
-            _binding.ResetBindings(false);
+            // Update binding source and force DataGridView refresh — reassign DataSource to ensure UI updates
+            var list = new BindingList<TableInfo>(filtered);
+            _binding.DataSource = list;
+            // Rebind the grid explicitly to force a refresh
+            try
+            {
+                dgvTables.DataSource = null;
+                dgvTables.DataSource = _binding;
+                dgvTables.ClearSelection();
+                if (dgvTables.Rows.Count > 0)
+                {
+                    dgvTables.CurrentCell = null;
+                }
+            }
+            catch { }
+            // If binding did not render rows for some reason, fallback to manual fill to ensure UI shows data
+            try
+            {
+                if (dgvTables.Rows.Count == 0 && filtered.Count > 0)
+                {
+                    dgvTables.Rows.Clear();
+                    foreach (var t in filtered)
+                    {
+                        var idx = dgvTables.Rows.Add(t.Code, t.Location, t.Capacity, t.Status.ToString(), t.Notes ?? string.Empty);
+                        dgvTables.Rows[idx].Tag = t;
+                    }
+                }
+            }
+            catch { }
             lblSummary.Text = filtered.Count == 1 ? "1 table" : $"{filtered.Count} tables";
             UpdateButtonStates();
         }

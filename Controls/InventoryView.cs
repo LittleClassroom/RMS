@@ -15,6 +15,7 @@ namespace RMS.Controls
         private readonly List<InventorySubcategory> _subcategories = new();
         private readonly List<InventoryItem> _items = new();
         private bool _suppressFilterEvents;
+        private bool _initialized;
 
         public InventoryView()
         {
@@ -90,7 +91,66 @@ namespace RMS.Controls
 
         private void OnSelectionChanged()
         {
-            // could update alert panel or details if present
+            // update history panel for the selected item
+            try
+            {
+                var item = GetSelectedItem();
+                if (item != null)
+                {
+                    PopulateHistory(item.InventoryItemId);
+                }
+                else
+                {
+                    // no selection - show recent transactions overall
+                    PopulateHistory(null);
+                }
+            }
+            catch { }
+        }
+
+        // Populate the tab History ListView (lvHistory). If inventoryItemId is null, load recent transactions across items.
+        private void PopulateHistory(int? inventoryItemId)
+        {
+            if (!EnsureRepo())
+            {
+                try { lvHistory.Items.Clear(); } catch { }
+                return;
+            }
+
+            try
+            {
+                lvHistory.BeginUpdate();
+                lvHistory.Items.Clear();
+
+                var txs = _repo.GetInventoryTransactions(inventoryItemId).OrderByDescending(t => t.CreatedAtUtc).ToList();
+                foreach (var tx in txs)
+                {
+                    var lvi = new ListViewItem(new[]
+                    {
+                        tx.CreatedAtUtc.ToLocalTime().ToString("g"),
+                        DescribeTransactionType(tx.Type),
+                        tx.Quantity.ToString("0.###"),
+                        tx.Reference ?? string.Empty,
+                        tx.SourceType ?? string.Empty
+                    });
+                    lvi.Tag = tx;
+                    lvHistory.Items.Add(lvi);
+                }
+
+                if (lvHistory.Items.Count == 0)
+                {
+                    lvHistory.Items.Add(new ListViewItem(new[] { string.Empty, "No transactions", string.Empty, string.Empty, string.Empty }));
+                }
+            }
+            catch (Exception ex)
+            {
+                // don't block UI - show minimal feedback
+                try { lvHistory.Items.Clear(); lvHistory.Items.Add(new ListViewItem(new[] { string.Empty, "Failed to load history", ex.Message, string.Empty, string.Empty })); } catch { }
+            }
+            finally
+            {
+                try { lvHistory.EndUpdate(); } catch { }
+            }
         }
 
         public void ConfigureRepository(RmsRepository? repo)
@@ -100,12 +160,44 @@ namespace RMS.Controls
             RefreshData();
         }
 
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+            try
+            {
+                if (this.Visible && !_initialized)
+                {
+                    _initialized = true;
+                    RefreshData();
+                }
+            }
+            catch { }
+        }
+
+        // Ensure repository is configured; attempt to create one from Global.CurrentConnectionString if not provided.
+        private bool EnsureRepo()
+        {
+            if (_repo != null) return true;
+            try
+            {
+                var cs = RMS.Global.CurrentConnectionString;
+                if (string.IsNullOrWhiteSpace(cs)) return false;
+                _repo = new RmsRepository(cs);
+                LoadFilters();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public void RefreshData()
         {
-            if (_repo == null)
+            if (!EnsureRepo())
             {
                 inventoryGrid.Rows.Clear();
-                lblAlertsList.Text = "Inventory unavailable.";
+                lblAlertsList.Text = "Inventory unavailable. Configure database connection first.";
                 return;
             }
 
@@ -139,7 +231,7 @@ namespace RMS.Controls
 
         private void ViewTransactionsForSelected()
         {
-            if (_repo == null)
+            if (!EnsureRepo())
             {
                 MessageBox.Show(this, "Database connection not configured.", "Inventory", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -190,7 +282,7 @@ namespace RMS.Controls
 
         private void AddTransaction(byte defaultType, bool allowTypeOverride = false)
         {
-            if (_repo == null)
+            if (!EnsureRepo())
             {
                 MessageBox.Show(this, "Database connection not configured.", "Inventory", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -235,7 +327,7 @@ namespace RMS.Controls
 
         private void LoadFilters()
         {
-            if (_repo == null)
+            if (!EnsureRepo())
             {
                 cbCategory.DataSource = null;
                 cbSubcategory.DataSource = null;
