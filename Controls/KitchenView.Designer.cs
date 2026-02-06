@@ -18,50 +18,57 @@ namespace RMS.Controls
 
         private void InitializeComponent()
         {
-            this.headerPanel = new System.Windows.Forms.Panel();
-            this.lblTitle = new System.Windows.Forms.Label();
-            this.ticketsPanel = new System.Windows.Forms.FlowLayoutPanel();
-
-            this.SuspendLayout();
-
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(KitchenView));
+            headerPanel = new Panel();
+            lblTitle = new Label();
+            ticketsPanel = new FlowLayoutPanel();
+            headerPanel.SuspendLayout();
+            SuspendLayout();
             // 
             // headerPanel
             // 
-            this.headerPanel.Dock = System.Windows.Forms.DockStyle.Top;
-            this.headerPanel.Height = 60;
-            this.headerPanel.BackColor = System.Drawing.Color.FromArgb(255, 87, 34);
-            this.headerPanel.Padding = new System.Windows.Forms.Padding(16, 12, 16, 12);
-
+            headerPanel.BackColor = Color.FromArgb(255, 87, 34);
+            headerPanel.Controls.Add(lblTitle);
+            headerPanel.Dock = DockStyle.Top;
+            headerPanel.Location = new Point(0, 0);
+            headerPanel.Name = "headerPanel";
+            headerPanel.Padding = new Padding(16, 12, 16, 12);
+            headerPanel.Size = new Size(800, 60);
+            headerPanel.TabIndex = 1;
             // 
             // lblTitle
             // 
-            this.lblTitle.Text = "🍳 Kitchen Display";
-            this.lblTitle.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold);
-            this.lblTitle.ForeColor = System.Drawing.Color.White;
-            this.lblTitle.AutoSize = true;
-            this.lblTitle.Location = new System.Drawing.Point(16, 14);
-            this.headerPanel.Controls.Add(this.lblTitle);
-
+            lblTitle.AutoSize = true;
+            lblTitle.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
+            lblTitle.ForeColor = Color.White;
+            lblTitle.Location = new Point(16, 14);
+            lblTitle.Name = "lblTitle";
+            lblTitle.Size = new Size(232, 32);
+            lblTitle.TabIndex = 0;
+            lblTitle.Text = "🍳 Kitchen Display";
             // 
-            // ticketsPanel - Kitchen tickets
+            // ticketsPanel
             // 
-            this.ticketsPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.ticketsPanel.AutoScroll = true;
-            this.ticketsPanel.Padding = new System.Windows.Forms.Padding(16);
-            this.ticketsPanel.BackColor = System.Drawing.Color.FromArgb(33, 33, 33);
-            this.ticketsPanel.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
-
-            // Add sample kitchen tickets
-            AddSampleTickets();
-
+            ticketsPanel.AutoScroll = true;
+            ticketsPanel.BackColor = Color.FromArgb(64, 64, 64);
+            ticketsPanel.BackgroundImage = (Image)resources.GetObject("ticketsPanel.BackgroundImage");
+            ticketsPanel.Dock = DockStyle.Fill;
+            ticketsPanel.Location = new Point(0, 60);
+            ticketsPanel.Name = "ticketsPanel";
+            ticketsPanel.Padding = new Padding(16);
+            ticketsPanel.Size = new Size(800, 440);
+            ticketsPanel.TabIndex = 0;
+            ticketsPanel.Paint += ticketsPanel_Paint;
             // 
             // KitchenView
             // 
-            this.Controls.Add(this.ticketsPanel);
-            this.Controls.Add(this.headerPanel);
-            this.Name = "KitchenView";
-            this.Size = new System.Drawing.Size(800, 500);
-            this.ResumeLayout(false);
+            Controls.Add(ticketsPanel);
+            Controls.Add(headerPanel);
+            Name = "KitchenView";
+            Size = new Size(800, 500);
+            headerPanel.ResumeLayout(false);
+            headerPanel.PerformLayout();
+            ResumeLayout(false);
         }
 
         private void AddSampleTickets()

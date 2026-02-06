@@ -138,11 +138,6 @@ namespace RMS.UI
             }
         }
 
-        private void btnNewOrder_Click(object sender, EventArgs e)
-        {
-            // Shortcut button to display the orders view
-            ShowOrders();
-        }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
@@ -169,10 +164,15 @@ namespace RMS.UI
             if (existingContent != null)
             {
                 existingContent.Controls.Clear();
-                
+
                 var staffOrderView = new RMS.Controls.StaffOrderView { Dock = DockStyle.Fill };
                 existingContent.Controls.Add(staffOrderView);
             }
+        }
+
+        private void StaffMainForm_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }

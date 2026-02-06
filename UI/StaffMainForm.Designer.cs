@@ -66,7 +66,6 @@ namespace RMS.UI
             // 
             headerPanel.BackColor = Color.White;
             headerPanel.Controls.Add(lblPageTitle);
-            headerPanel.Controls.Add(btnNewOrder);
             headerPanel.Dock = DockStyle.Top;
             headerPanel.Location = new Point(0, 0);
             headerPanel.Name = "headerPanel";
@@ -87,20 +86,10 @@ namespace RMS.UI
             // 
             // btnNewOrder
             // 
-            btnNewOrder.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnNewOrder.BackColor = Color.FromArgb(76, 175, 80);
-            btnNewOrder.Cursor = Cursors.Hand;
-            btnNewOrder.FlatAppearance.BorderSize = 0;
-            btnNewOrder.FlatStyle = FlatStyle.Flat;
-            btnNewOrder.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            btnNewOrder.ForeColor = Color.White;
-            btnNewOrder.Location = new Point(1630, 16);
+            btnNewOrder.Location = new Point(0, 0);
             btnNewOrder.Name = "btnNewOrder";
-            btnNewOrder.Size = new Size(120, 38);
-            btnNewOrder.TabIndex = 1;
-            btnNewOrder.Text = "+ New Order";
-            btnNewOrder.UseVisualStyleBackColor = false;
-            btnNewOrder.Click += btnNewOrder_Click;
+            btnNewOrder.Size = new Size(75, 23);
+            btnNewOrder.TabIndex = 0;
             // 
             // StaffMainForm
             // 
@@ -114,6 +103,7 @@ namespace RMS.UI
             Name = "StaffMainForm";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "RMS - Staff Dashboard";
+            Load += StaffMainForm_Load;
             mainContainer.ResumeLayout(false);
             headerPanel.ResumeLayout(false);
             headerPanel.PerformLayout();
